@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, 
@@ -71,7 +71,7 @@ export default function ProductDetail() {
 
   const fetchProductDetails = async () => {
     try {
-      const res = await axios.get(`/api/products/${id}`);
+      const res = await api.get(`/products/${id}`);
       setProduct(res.data);
       if (res.data.sizes && res.data.sizes.length > 0) {
         setSelectedSize(res.data.sizes[2] || res.data.sizes[0]);
@@ -85,7 +85,7 @@ export default function ProductDetail() {
 
   const fetchReviews = async () => {
     try {
-      const res = await axios.get(`/api/products/${id}/reviews`);
+      const res = await api.get(`/products/${id}/reviews`);
       setReviews(res.data);
     } catch (err) {
       console.error('Failed to load reviews:', err);
@@ -111,11 +111,9 @@ export default function ProductDetail() {
     setSubmittingReview(true);
 
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      await axios.post(
-        `/api/products/${id}/reviews`,
-        { rating: newRating, comment: newComment },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(
+        `/products/${id}/reviews`,
+        { rating: newRating, comment: newComment }
       );
       setNewComment('');
       fetchReviews();

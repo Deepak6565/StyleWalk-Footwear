@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
@@ -81,14 +81,12 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      const prodRes = await axios.get('/api/products');
+      const prodRes = await api.get('/products');
       setProducts(prodRes.data);
 
+      const token = localStorage.getItem('stylewalk_token');
       if (token) {
-        const orderRes = await axios.get('/api/orders/all', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const orderRes = await api.get('/orders/all');
         setOrders(orderRes.data);
       }
     } catch (err) {
@@ -100,7 +98,7 @@ export default function AdminDashboard() {
 
   const fetchAdminQr = async () => {
     try {
-      const res = await axios.get('/api/admin/qr-code');
+      const res = await api.get('/admin/qr-code');
       if (res.data && res.data.qr_code) {
         setAdminQrCode(res.data.qr_code);
         setNewQrInput(res.data.qr_code);
@@ -114,13 +112,11 @@ export default function AdminDashboard() {
     setVerifyingOrder(true);
     setRejectionError('');
     try {
-      const token = localStorage.getItem('stylewalk_token');
       const payload = { action, rejection_reason: rejectionReason };
 
-      const res = await axios.post(
-        `/api/admin/orders/${orderId}/verify-payment`,
-        payload,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        `/admin/orders/${orderId}/verify-payment`,
+        payload
       );
 
       setOrders(prev =>
@@ -152,12 +148,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!newQrInput.trim()) return;
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      await axios.post(
-        '/api/admin/qr-code',
-        { qr_code: newQrInput.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/admin/qr-code', { qr_code: newQrInput.trim() });
       setAdminQrCode(newQrInput.trim());
       alert('Admin UPI QR Code updated successfully!');
     } catch (err) {
@@ -169,7 +160,6 @@ export default function AdminDashboard() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file size before upload (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('File is too large. Please choose an image under 5MB.');
       e.target.value = '';
@@ -177,7 +167,6 @@ export default function AdminDashboard() {
     }
 
     const token = localStorage.getItem('stylewalk_token');
-
     if (!token) {
       alert('Authentication token missing. Please log out and log in again as Admin.');
       return;
@@ -186,11 +175,7 @@ export default function AdminDashboard() {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const res = await axios.post(
-          '/api/upload/qr',
-          { imageBase64: reader.result },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const res = await api.post('/upload/qr', { imageBase64: reader.result });
         setAdminQrCode(res.data.qrUrl);
         setNewQrInput(res.data.qrUrl);
         alert('✅ Custom QR code image uploaded and updated successfully!');
@@ -223,16 +208,10 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   };
 
-
   const handleStockUpdate = async (productId, currentStock, delta) => {
     const newStock = Math.max(0, currentStock + delta);
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      await axios.put(
-        `/api/products/${productId}`,
-        { stock_quantity: newStock },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/products/${productId}`, { stock_quantity: newStock });
       setProducts(prev =>
         prev.map(p => (p.id === productId ? { ...p, stock_quantity: newStock } : p))
       );
@@ -243,12 +222,7 @@ export default function AdminDashboard() {
 
   const handleOrderStatusUpdate = async (orderId, newStatus) => {
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      await axios.put(
-        `/api/orders/${orderId}/status`,
-        { order_status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/orders/${orderId}/status`, { order_status: newStatus });
       setOrders(prev =>
         prev.map(o => (o.id === orderId ? { ...o, order_status: newStatus } : o))
       );
@@ -260,10 +234,7 @@ export default function AdminDashboard() {
   const handleDeleteProduct = async (productId) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      const token = localStorage.getItem('stylewalk_token');
-      await axios.delete(`/api/products/${productId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/products/${productId}`);
       setProducts(prev => prev.filter(p => p.id !== productId));
     } catch (err) {
       alert('Failed to delete product.');
@@ -273,15 +244,10 @@ export default function AdminDashboard() {
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('stylewalk_token');
       if (editingProduct) {
-        await axios.put(`/api/products/${editingProduct.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await api.put(`/products/${editingProduct.id}`, formData);
       } else {
-        await axios.post('/api/products', formData, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await api.post('/products', formData);
       }
       setIsModalOpen(false);
       setEditingProduct(null);

@@ -17,24 +17,28 @@ const adminRoutes = require('./routes/admin');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// CORS configuration to support local development and production deployment dynamically
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
-
 
 // Serve static uploads directory for payment screenshots and QR codes
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/admin', adminRoutes);
+// Routes mounted with dual prefixes (/api/* and /*) to handle Vercel rewrites and direct requests dynamically
+app.use(['/api/auth', '/auth'], authRoutes);
+app.use(['/api/products', '/products'], productRoutes);
+app.use(['/api/coupons', '/coupons'], couponRoutes);
+app.use(['/api/payments', '/payments'], paymentRoutes);
+app.use(['/api/orders', '/orders'], orderRoutes);
+app.use(['/api/upload', '/upload'], uploadRoutes);
+app.use(['/api/admin', '/admin'], adminRoutes);
 
-app.get('/api/health', (req, res) => {
+app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', service: 'Style Walk API', timestamp: new Date().toISOString() });
 });
 

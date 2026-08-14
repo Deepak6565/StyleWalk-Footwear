@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -39,9 +39,7 @@ export default function CustomerOrders() {
         return;
       }
 
-      const res = await axios.get('/api/orders/user', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/orders/user');
       setOrders(res.data);
     } catch (err) {
       console.error('Failed to fetch user orders:', err);

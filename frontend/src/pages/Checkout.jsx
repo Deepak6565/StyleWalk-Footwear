@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ShieldCheck, 
@@ -74,7 +74,7 @@ export default function Checkout() {
 
   const fetchAdminQrCode = async () => {
     try {
-      const res = await axios.get('/api/admin/qr-code');
+      const res = await api.get('/admin/qr-code');
       if (res.data && res.data.qr_code) {
         setAdminQrCode(res.data.qr_code);
       }
@@ -133,10 +133,9 @@ export default function Checkout() {
       const base64Reader = new FileReader();
       base64Reader.onload = async () => {
         try {
-          const res = await axios.post(
-            '/api/upload/screenshot',
-            { imageBase64: base64Reader.result },
-            { headers: { Authorization: `Bearer ${token}` } }
+          const res = await api.post(
+            '/upload/screenshot',
+            { imageBase64: base64Reader.result }
           );
           setUploadedScreenshotUrl(res.data.imageUrl);
         } catch (uploadErr) {
@@ -213,11 +212,7 @@ export default function Checkout() {
         shipping_address: formattedShippingAddress
       };
 
-      await axios.post(
-        '/api/orders',
-        orderPayload,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/orders', orderPayload);
 
       clearCart();
       navigate('/orders');

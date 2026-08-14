@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 
 const CartContext = createContext();
 
@@ -109,7 +109,7 @@ export function CartProvider({ children }) {
 
   const applyCoupon = async (code) => {
     try {
-      const res = await axios.post('/api/coupons/validate', {
+      const res = await api.post('/coupons/validate', {
         code,
         subtotal
       });

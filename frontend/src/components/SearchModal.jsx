@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, TrendingUp, Sparkles, ArrowRight, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 
 export default function SearchModal({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ export default function SearchModal({ isOpen, onClose }) {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`/api/products?search=${encodeURIComponent(query)}`);
+        const res = await api.get(`/products?search=${encodeURIComponent(query)}`);
         setResults(res.data.slice(0, 5));
       } catch (err) {
         console.error('Search failed:', err);

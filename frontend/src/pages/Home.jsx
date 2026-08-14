@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import {
   Sparkles,
@@ -78,7 +78,7 @@ export default function Home({ selectedCategory: propCategory, onSelectCategory,
       if (searchTerm) params.search = searchTerm;
       if (sortBy) params.sort = sortBy;
 
-      const res = await axios.get('/api/products', { params });
+      const res = await api.get('/products', { params });
       setProducts(res.data);
     } catch (err) {
       console.error('Failed to fetch products:', err);
