@@ -27,7 +27,21 @@ export default function Checkout() {
   const { user } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' | 'ONLINE'
-  const [shippingAddress, setShippingAddress] = useState('104 Cyberway Blvd, Bandra Kurla Complex, Mumbai, Maharashtra 400051');
+  const [billingDetails, setBillingDetails] = useState({
+    firstName: '',
+    lastName: '',
+    companyName: '',
+    countryRegion: 'United States (US)',
+    streetAddress: '',
+    apartmentSuite: '',
+    city: '',
+    state: 'California',
+    zipCode: '',
+    phone: '',
+    email: '',
+    orderNotes: ''
+  });
+
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [processing, setProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,6 +55,22 @@ export default function Checkout() {
   useEffect(() => {
     fetchAdminQrCode();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      const nameParts = (user.name || '').trim().split(' ');
+      setBillingDetails(prev => ({
+        ...prev,
+        firstName: prev.firstName || nameParts[0] || '',
+        lastName: prev.lastName || nameParts.slice(1).join(' ') || '',
+        email: prev.email || user.email || ''
+      }));
+    }
+  }, [user]);
+
+  const handleBillingChange = (field, val) => {
+    setBillingDetails(prev => ({ ...prev, [field]: val }));
+  };
 
   const fetchAdminQrCode = async () => {
     try {
@@ -141,8 +171,18 @@ export default function Checkout() {
         return;
       }
 
-      if (!shippingAddress.trim()) {
-        setErrorMsg('Delivery shipping address is required.');
+      if (
+        !billingDetails.firstName.trim() ||
+        !billingDetails.lastName.trim() ||
+        !billingDetails.countryRegion.trim() ||
+        !billingDetails.streetAddress.trim() ||
+        !billingDetails.city.trim() ||
+        !billingDetails.state.trim() ||
+        !billingDetails.zipCode.trim() ||
+        !billingDetails.phone.trim() ||
+        !billingDetails.email.trim()
+      ) {
+        setErrorMsg('Please complete all required Billing Details (First name, Last name, Country, Street address, City, State, ZIP Code, Phone, Email).');
         setProcessing(false);
         return;
       }
@@ -153,6 +193,15 @@ export default function Checkout() {
         return;
       }
 
+      const formattedShippingAddress = [
+        `${billingDetails.firstName.trim()} ${billingDetails.lastName.trim()}${billingDetails.companyName.trim() ? ` (${billingDetails.companyName.trim()})` : ''}`,
+        `${billingDetails.streetAddress.trim()}${billingDetails.apartmentSuite.trim() ? `, ${billingDetails.apartmentSuite.trim()}` : ''}`,
+        `${billingDetails.city.trim()}, ${billingDetails.state.trim()} ${billingDetails.zipCode.trim()}`,
+        billingDetails.countryRegion,
+        `Phone: ${billingDetails.phone.trim()} | Email: ${billingDetails.email.trim()}`,
+        billingDetails.orderNotes.trim() ? `Order Notes: ${billingDetails.orderNotes.trim()}` : ''
+      ].filter(Boolean).join('\n');
+
       const orderPayload = {
         items: cartItems,
         subtotal,
@@ -161,7 +210,7 @@ export default function Checkout() {
         coupon_used: appliedCoupon ? appliedCoupon.code : null,
         payment_method: paymentMethod,
         payment_screenshot: paymentMethod === 'ONLINE' ? uploadedScreenshotUrl : null,
-        shipping_address: shippingAddress
+        shipping_address: formattedShippingAddress
       };
 
       await axios.post(
@@ -220,25 +269,206 @@ export default function Checkout() {
         {/* Left Column: Shipping & Payment Method Options */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* 1. Delivery Shipping Address */}
-          <div className="p-6 rounded-3xl bg-white border border-gray-200 text-left space-y-4 shadow-sm">
-            <div className="flex items-center space-x-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#059669] animate-pulse" />
-              <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#0F172A] font-heading">1. DELIVERY SHIPPING ADDRESS</h3>
+          {/* 1. BILLING DETAILS FORM */}
+          <div className="p-6 sm:p-8 rounded-3xl bg-white border border-gray-200 text-left space-y-6 shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#059669] animate-pulse" />
+                <h3 className="text-base font-extrabold uppercase tracking-wider text-[#0F172A] font-heading">
+                  1. Billing details
+                </h3>
+              </div>
+              <span className="text-[10px] font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-full uppercase">
+                Step 1 of 2
+              </span>
             </div>
 
-            <div>
-              <label className="block text-[11px] font-bold uppercase text-[#64748B] mb-1.5">
-                Full Street Address, Landmark & Pincode
-              </label>
-              <textarea
-                rows={3}
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                placeholder="Enter complete delivery address..."
-                className="w-full p-3.5 rounded-2xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white cursor-text"
-                required
-              />
+            <div className="space-y-4">
+              
+              {/* First Name & Last Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    First name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={billingDetails.firstName}
+                    onChange={(e) => handleBillingChange('firstName', e.target.value)}
+                    placeholder="First name"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    Last name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={billingDetails.lastName}
+                    onChange={(e) => handleBillingChange('lastName', e.target.value)}
+                    placeholder="Last name"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Company Name (optional) */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                  Company name <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={billingDetails.companyName}
+                  onChange={(e) => handleBillingChange('companyName', e.target.value)}
+                  placeholder="Company name (optional)"
+                  className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                />
+              </div>
+
+              {/* Country / Region */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                  Country / Region <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  value={billingDetails.countryRegion}
+                  onChange={(e) => handleBillingChange('countryRegion', e.target.value)}
+                  className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition cursor-pointer"
+                  required
+                >
+                  <option value="United States (US)">United States (US)</option>
+                  <option value="India">India</option>
+                  <option value="United Kingdom (UK)">United Kingdom (UK)</option>
+                  <option value="Canada">Canada</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Germany">Germany</option>
+                  <option value="France">France</option>
+                  <option value="United Arab Emirates">United Arab Emirates</option>
+                  <option value="Singapore">Singapore</option>
+                  <option value="Japan">Japan</option>
+                </select>
+              </div>
+
+              {/* Street Address */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                  Street address <span className="text-rose-500">*</span>
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={billingDetails.streetAddress}
+                    onChange={(e) => handleBillingChange('streetAddress', e.target.value)}
+                    placeholder="House number and street name"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={billingDetails.apartmentSuite}
+                    onChange={(e) => handleBillingChange('apartmentSuite', e.target.value)}
+                    placeholder="Apartment, suite, unit, etc. (optional)"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              {/* Town / City & State & ZIP Code */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    Town / City <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={billingDetails.city}
+                    onChange={(e) => handleBillingChange('city', e.target.value)}
+                    placeholder="Town / City"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    State <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={billingDetails.state}
+                    onChange={(e) => handleBillingChange('state', e.target.value)}
+                    placeholder="California"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    ZIP Code <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={billingDetails.zipCode}
+                    onChange={(e) => handleBillingChange('zipCode', e.target.value)}
+                    placeholder="ZIP Code"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone & Email Address */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    Phone <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={billingDetails.phone}
+                    onChange={(e) => handleBillingChange('phone', e.target.value)}
+                    placeholder="Phone number"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
+                    Email address <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={billingDetails.email}
+                    onChange={(e) => handleBillingChange('email', e.target.value)}
+                    placeholder="Email address"
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Additional Information / Order Notes */}
+              <div className="pt-3 border-t border-gray-100 space-y-2">
+                <h4 className="text-xs font-black uppercase text-[#0F172A] font-heading tracking-wide">
+                  Additional information
+                </h4>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-[#64748B] mb-1.5">
+                    Order notes <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={billingDetails.orderNotes}
+                    onChange={(e) => handleBillingChange('orderNotes', e.target.value)}
+                    placeholder="Notes about your order, e.g. special notes for delivery."
+                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
             </div>
           </div>
 
