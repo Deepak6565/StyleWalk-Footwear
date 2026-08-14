@@ -15,7 +15,8 @@ import {
   Star,
   Check,
   Layers,
-  Eye
+  Eye,
+  ExternalLink
 } from 'lucide-react';
 import ProductTiltCard from '../components/ProductTiltCard';
 import ShoeSizeAdvisorModal from '../components/ShoeSizeAdvisorModal';
