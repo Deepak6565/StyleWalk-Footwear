@@ -6,8 +6,12 @@ const db = require('../database');
 const { verifyToken, requireAdmin } = require('../middleware/auth');
 
 const uploadsDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Uploads directory creation skipped (serverless environment):', err.message);
 }
 
 // POST /api/upload/screenshot - Customer uploads payment screenshot
@@ -27,13 +31,21 @@ router.post('/screenshot', verifyToken, (req, res) => {
       base64Data = parts[1];
     }
 
-    const filename = `screenshot_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, base64Data, 'base64');
-
-    const imageUrl = `/uploads/${filename}`;
-    res.json({ imageUrl, message: 'Screenshot uploaded successfully!' });
+    // Try saving to local disk if writable (e.g. local environment)
+    try {
+      const filename = `screenshot_${Date.now()}_${Math.floor(Math.random() * 1000)}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, base64Data, 'base64');
+      const imageUrl = `/uploads/${filename}`;
+      return res.json({ imageUrl, message: 'Screenshot uploaded successfully!' });
+    } catch (fsErr) {
+      // Serverless read-only filesystem (Vercel): Fallback to base64 Data URL directly (100% free, zero cloud setup)
+      console.warn('Serverless read-only filesystem detected, using base64 Data URL fallback:', fsErr.message);
+      const dataUrl = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/${ext};base64,${base64Data}`;
+      return res.json({ imageUrl: dataUrl, message: 'Screenshot uploaded successfully!' });
+    }
   } catch (err) {
     console.error('Screenshot upload error:', err);
     res.status(500).json({ error: 'Failed to save screenshot image: ' + err.message });
@@ -57,12 +69,18 @@ router.post('/qr', verifyToken, requireAdmin, (req, res) => {
       base64Data = parts[1];
     }
 
-    const filename = `qr_code_${Date.now()}.${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, base64Data, 'base64');
-
-    const qrUrl = `/uploads/${filename}`;
+    let qrUrl;
+    try {
+      const filename = `qr_code_${Date.now()}.${ext}`;
+      const filePath = path.join(uploadsDir, filename);
+      fs.writeFileSync(filePath, base64Data, 'base64');
+      qrUrl = `/uploads/${filename}`;
+    } catch (fsErr) {
+      console.warn('Serverless read-only filesystem detected, using base64 Data URL fallback for QR code:', fsErr.message);
+      qrUrl = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/${ext};base64,${base64Data}`;
+    }
 
     db.run(
       "INSERT INTO AdminSettings (key, value) VALUES ('admin_qr_code', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
