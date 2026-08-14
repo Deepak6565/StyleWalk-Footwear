@@ -4,6 +4,7 @@ import {
   Footprints,
   MapPin,
   Phone,
+  Mail,
   Sparkles,
   ChevronRight,
   ShieldCheck,
@@ -180,9 +181,16 @@ export default function Footer({ onOpenRadialCategory }) {
                 <span>New Bus Stand Road, Tiruchengode-637211, Tamil Nadu</span>
               </div>
 
-              <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
-                <a href="tel:+919715362378" className="hover:text-white transition-colors">+91 97153 62378</a>
+              <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <a href="tel:+919715362378" className="hover:text-white transition-colors">+91 97153 62378</a>
+                </div>
+                <span className="text-gray-600 hidden sm:inline">•</span>
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <a href="mailto:support@stylewalk.in" className="hover:text-white transition-colors">support@stylewalk.in</a>
+                </div>
               </div>
             </div>
 
