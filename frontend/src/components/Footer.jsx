@@ -15,7 +15,9 @@ import {
   Share2,
   MessageSquare,
   Lock,
-  CreditCard
+  CreditCard,
+  Clock,
+  Navigation
 } from 'lucide-react';
 
 export default function Footer({ onOpenRadialCategory }) {
@@ -169,38 +171,57 @@ export default function Footer({ onOpenRadialCategory }) {
           </div>
 
 
-          {/* Col 4: Showroom Contact (Col 3) */}
-          <div className="lg:col-span-3 space-y-4">
+          {/* Col 4: Store Location & Medium Google Map (Right Corner) */}
+          <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-black uppercase text-white tracking-widest font-heading border-b border-indigo-500/30 pb-2">
-              SHOWROOM CONTACT
+              STORE LOCATION & MAP
             </h4>
 
-            <div className="space-y-2.5 text-xs font-medium text-gray-300">
-              <div className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">New Bus Stand Road, Tiruchengode-637211, Tamil Nadu</span>
+            {/* Address & Phone */}
+            <div className="space-y-1.5 text-xs font-medium text-gray-300">
+              <div className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <span className="leading-snug">New Bus Stand Rd, Tiruchengode-637211</span>
               </div>
-
-              <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-indigo-400 shrink-0" />
+              <div className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                 <a href="tel:+919715362378" className="hover:text-white transition-colors font-semibold">+91 97153 62378</a>
-              </div>
-
-              <div className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                <a href="mailto:support@stylewalk.in" className="hover:text-white transition-colors font-semibold">support@stylewalk.in</a>
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                onClick={scrollToStore}
-                className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-indigo-600/30 text-indigo-300 hover:text-white font-extrabold text-[11px] flex items-center justify-center gap-2 border border-indigo-500/30 transition cursor-pointer"
+            {/* Medium-Sized Google Map Container */}
+            <div className="rounded-2xl overflow-hidden border border-indigo-500/30 shadow-lg relative h-40 bg-gray-950">
+              <iframe
+                title="StyleWalk Showroom Footer Map"
+                width="100%"
+                height="100%"
+                className="w-full h-full border-0"
+                loading="lazy"
+                allowFullScreen
+                src="https://maps.google.com/maps?q=11.3807,77.8944(StyleWalk%20Flagship%20Store)&t=p&z=15&ie=UTF8&iwloc=B&output=embed"
+              />
+            </div>
+
+            {/* Down side of Google Map: Timing & Driving Directions */}
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-amber-300 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20 font-bold">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Shop Timing:</span>
+                </div>
+                <span className="text-white font-extrabold">8:00 AM – 10:00 PM</span>
+              </div>
+
+              <a
+                href="https://www.google.com/maps/dir/?api=1&destination=11.3807,77.8944"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-[11px] flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition cursor-pointer"
               >
-                <MapPin className="w-3.5 h-3.5" />
-                <span>View Flagship Map & Hours</span>
-                <ExternalLink className="w-3 h-3 opacity-70" />
-              </button>
+                <Navigation className="w-3.5 h-3.5 fill-current" />
+                <span>Get Driving Directions</span>
+                <ExternalLink className="w-3 h-3 opacity-80" />
+              </a>
             </div>
           </div>
 
