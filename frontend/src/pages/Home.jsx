@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import ProductTiltCard from '../components/ProductTiltCard';
 import ShoeSizeAdvisorModal from '../components/ShoeSizeAdvisorModal';
-import StoreLocationMap from '../components/StoreLocationMap';
 
 export default function Home({ selectedCategory: propCategory, onSelectCategory, searchFilter }) {
   const navigate = useNavigate();
@@ -421,9 +420,6 @@ export default function Home({ selectedCategory: propCategory, onSelectCategory,
       </section>
 
 
-
-      {/* STORE LOCATION & GOOGLE MAPS SECTION */}
-      <StoreLocationMap />
 
       {/* SIZE ADVISOR MODAL */}
       <ShoeSizeAdvisorModal
