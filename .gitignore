@@ -9,7 +9,7 @@ backend/.env
 frontend/.env
 
 # Build outputs
-frontend/dist-ssr/
+
 
 # Logs
 *.log
