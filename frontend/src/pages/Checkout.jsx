@@ -31,11 +31,11 @@ export default function Checkout() {
     firstName: '',
     lastName: '',
     companyName: '',
-    countryRegion: 'United States (US)',
+    countryRegion: 'India',
     streetAddress: '',
     apartmentSuite: '',
     city: '',
-    state: 'California',
+    state: 'Tamil Nadu',
     zipCode: '',
     phone: '',
     email: '',
@@ -340,8 +340,8 @@ export default function Checkout() {
                   className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition cursor-pointer"
                   required
                 >
-                  <option value="United States (US)">United States (US)</option>
                   <option value="India">India</option>
+                  <option value="United States (US)">United States (US)</option>
                   <option value="United Kingdom (UK)">United Kingdom (UK)</option>
                   <option value="Canada">Canada</option>
                   <option value="Australia">Australia</option>
@@ -396,24 +396,52 @@ export default function Checkout() {
                   <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
                     State <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={billingDetails.state}
-                    onChange={(e) => handleBillingChange('state', e.target.value)}
-                    placeholder="California"
-                    className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
-                    required
-                  />
+                  {billingDetails.countryRegion === 'India' ? (
+                    <select
+                      value={billingDetails.state}
+                      onChange={(e) => handleBillingChange('state', e.target.value)}
+                      className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition cursor-pointer"
+                      required
+                    >
+                      <option value="Tamil Nadu">Tamil Nadu</option>
+                      <option value="Maharashtra">Maharashtra</option>
+                      <option value="Karnataka">Karnataka</option>
+                      <option value="Delhi">Delhi</option>
+                      <option value="Kerala">Kerala</option>
+                      <option value="Gujarat">Gujarat</option>
+                      <option value="Telangana">Telangana</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh</option>
+                      <option value="West Bengal">West Bengal</option>
+                      <option value="Rajasthan">Rajasthan</option>
+                      <option value="Punjab">Punjab</option>
+                      <option value="Haryana">Haryana</option>
+                      <option value="Bihar">Bihar</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh</option>
+                      <option value="Odisha">Odisha</option>
+                      <option value="Assam">Assam</option>
+                      <option value="Goa">Goa</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={billingDetails.state}
+                      onChange={(e) => handleBillingChange('state', e.target.value)}
+                      placeholder="State / Province"
+                      className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
+                      required
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase text-[#475569] mb-1.5">
-                    ZIP Code <span className="text-rose-500">*</span>
+                    PIN / ZIP Code <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={billingDetails.zipCode}
                     onChange={(e) => handleBillingChange('zipCode', e.target.value)}
-                    placeholder="ZIP Code"
+                    placeholder="PIN / ZIP Code"
                     className="w-full p-3.5 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] focus:outline-none focus:border-[#4F46E5] focus:bg-white transition"
                     required
                   />
