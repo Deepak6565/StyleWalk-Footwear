@@ -4,32 +4,16 @@ import {
   Footprints,
   MapPin,
   Phone,
-  Mail,
   Sparkles,
   ChevronRight,
   ShieldCheck,
   Truck,
-  RotateCcw,
   ExternalLink,
-  Globe,
-  Share2,
-  MessageSquare,
-  Lock,
-  CreditCard,
   Clock,
   Navigation
 } from 'lucide-react';
 
 export default function Footer({ onOpenRadialCategory }) {
-
-  const scrollToStore = () => {
-    const el = document.getElementById('store-location');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      window.location.href = '/#store-location';
-    }
-  };
 
   const scrollToProducts = () => {
     const el = document.getElementById('products-section');
@@ -105,10 +89,10 @@ export default function Footer({ onOpenRadialCategory }) {
           </div>
 
 
-          {/* Col 2: Navigation (Col 2) */}
-          <div className="lg:col-span-2 space-y-4">
+          {/* Col 2: Quick Navigation (Col 3) */}
+          <div className="lg:col-span-3 space-y-4">
             <h4 className="text-xs font-black uppercase text-white tracking-widest font-heading border-b border-indigo-500/30 pb-2">
-              NAVIGATION
+              QUICK NAVIGATION
             </h4>
             <ul className="space-y-2.5 text-gray-400 font-semibold">
               <li>
@@ -121,12 +105,6 @@ export default function Footer({ onOpenRadialCategory }) {
                 <button onClick={onOpenRadialCategory} className="hover:text-white transition-colors flex items-center gap-1.5 group cursor-pointer">
                   <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
                   <span>Category Hub</span>
-                </button>
-              </li>
-              <li>
-                <button onClick={scrollToStore} className="hover:text-white transition-colors flex items-center gap-1.5 group cursor-pointer">
-                  <ChevronRight className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-1 transition-transform" />
-                  <span>Store Location & Map</span>
                 </button>
               </li>
               <li>
@@ -144,35 +122,8 @@ export default function Footer({ onOpenRadialCategory }) {
             </ul>
           </div>
 
-
-          {/* Col 3: Customer Care & Guarantees (Col 3) */}
-          <div className="lg:col-span-3 space-y-4">
-            <h4 className="text-xs font-black uppercase text-white tracking-widest font-heading border-b border-indigo-500/30 pb-2">
-              CUSTOMER CARE
-            </h4>
-            <ul className="space-y-2.5 text-gray-400 font-semibold">
-              <li className="flex items-center gap-2">
-                <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>Stripe Encrypted & Sandbox Payment</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <RotateCcw className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                <span>30-Day Zero Cost Easy Returns</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>AI Size Advisor Fit Guarantee</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                <span>Authenticity & Warranty Card</span>
-              </li>
-            </ul>
-          </div>
-
-
-          {/* Col 4: Store Location & Medium Google Map (Right Corner) */}
-          <div className="lg:col-span-3 space-y-3">
+          {/* Col 3: Store Location & Medium Google Map (Right Corner - Col 5) */}
+          <div className="lg:col-span-5 space-y-3">
             <h4 className="text-xs font-black uppercase text-white tracking-widest font-heading border-b border-indigo-500/30 pb-2">
               STORE LOCATION & MAP
             </h4>
