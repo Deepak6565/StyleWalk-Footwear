@@ -4,21 +4,39 @@ const bcrypt = require('bcryptjs');
 
 const fs = require('fs');
 
-const origDbPath = path.resolve(__dirname, 'stylewalk.db');
+const possibleOrigPaths = [
+  path.resolve(__dirname, 'stylewalk.db'),
+  path.resolve(process.cwd(), 'backend', 'stylewalk.db'),
+  path.resolve(process.cwd(), 'stylewalk.db')
+];
+
+let origDbPath = possibleOrigPaths.find(p => fs.existsSync(p)) || possibleOrigPaths[0];
 let dbPath = origDbPath;
 
-if (process.env.VERCEL) {
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
   const tmpDbPath = '/tmp/stylewalk.db';
-  if (!fs.existsSync(tmpDbPath)) {
-    if (fs.existsSync(origDbPath)) {
-      fs.copyFileSync(origDbPath, tmpDbPath);
+  try {
+    if (!fs.existsSync(tmpDbPath)) {
+      if (fs.existsSync(origDbPath)) {
+        fs.copyFileSync(origDbPath, tmpDbPath);
+        console.log(`[DB] Copied database from ${origDbPath} to ${tmpDbPath}`);
+      } else {
+        console.log(`[DB] Original db not found at ${origDbPath}, creating new at ${tmpDbPath}`);
+      }
     }
+    dbPath = tmpDbPath;
+  } catch (copyErr) {
+    console.error('[DB] Error configuring /tmp/stylewalk.db:', copyErr);
   }
-  dbPath = tmpDbPath;
 }
 
-const db = new sqlite3.Database(dbPath);
-console.log('SQLite DB path:', dbPath);
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('[DB] Failed to open SQLite database:', err);
+  } else {
+    console.log('[DB] SQLite DB connected successfully at path:', dbPath);
+  }
+});
 
 db.serialize(() => {
   db.run("PRAGMA foreign_keys = ON");

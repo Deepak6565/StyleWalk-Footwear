@@ -42,6 +42,15 @@ app.get(['/api/health', '/health'], (req, res) => {
   res.json({ status: 'ok', service: 'Style Walk API', timestamp: new Date().toISOString() });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[UNHANDLED EXPRESS ERROR]:', err);
+  res.status(500).json({
+    error: err.message || 'Internal Server Error',
+    path: req.path
+  });
+});
+
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`⚡ Style Walk Backend API server running on port ${PORT}`);
