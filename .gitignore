@@ -1,0 +1,27 @@
+# Node modules
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Build outputs
+frontend/dist/
+frontend/dist-ssr/
+
+# Logs
+*.log
+logs/
+
+# Database files & uploads
+backend/stylewalk.db
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
