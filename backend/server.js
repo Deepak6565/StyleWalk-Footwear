@@ -38,6 +38,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'Style Walk API', timestamp: new Date().toISOString() });
 });
 
-app.listen(PORT, () => {
-  console.log(`⚡ Style Walk Backend API server running on port ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`⚡ Style Walk Backend API server running on port ${PORT}`);
+  });
+}
+
+module.exports = app;

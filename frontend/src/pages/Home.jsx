@@ -78,7 +78,7 @@ export default function Home({ selectedCategory: propCategory, onSelectCategory,
       if (searchTerm) params.search = searchTerm;
       if (sortBy) params.sort = sortBy;
 
-      const res = await axios.get('http://localhost:5000/api/products', { params });
+      const res = await axios.get('/api/products', { params });
       setProducts(res.data);
     } catch (err) {
       console.error('Failed to fetch products:', err);

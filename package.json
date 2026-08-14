@@ -6,7 +6,8 @@
     "start": "concurrently \"npm --prefix backend start\" \"npm --prefix frontend run dev\"",
     "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "backend": "npm --prefix backend run dev",
-    "frontend": "npm --prefix frontend run dev"
+    "frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build"
   },
   "dependencies": {
     "concurrently": "^8.2.2"

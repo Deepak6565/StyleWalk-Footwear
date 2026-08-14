@@ -71,7 +71,7 @@ export default function ProductDetail() {
 
   const fetchProductDetails = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+      const res = await axios.get(`/api/products/${id}`);
       setProduct(res.data);
       if (res.data.sizes && res.data.sizes.length > 0) {
         setSelectedSize(res.data.sizes[2] || res.data.sizes[0]);
@@ -85,7 +85,7 @@ export default function ProductDetail() {
 
   const fetchReviews = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/${id}/reviews`);
+      const res = await axios.get(`/api/products/${id}/reviews`);
       setReviews(res.data);
     } catch (err) {
       console.error('Failed to load reviews:', err);
@@ -113,7 +113,7 @@ export default function ProductDetail() {
     try {
       const token = localStorage.getItem('stylewalk_token');
       await axios.post(
-        `http://localhost:5000/api/products/${id}/reviews`,
+        `/api/products/${id}/reviews`,
         { rating: newRating, comment: newComment },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -109,7 +109,7 @@ export function CartProvider({ children }) {
 
   const applyCoupon = async (code) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/coupons/validate', {
+      const res = await axios.post('/api/coupons/validate', {
         code,
         subtotal
       });

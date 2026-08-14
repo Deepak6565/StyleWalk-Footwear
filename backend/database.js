@@ -2,7 +2,21 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const dbPath = path.resolve(__dirname, 'stylewalk.db');
+const fs = require('fs');
+
+const origDbPath = path.resolve(__dirname, 'stylewalk.db');
+let dbPath = origDbPath;
+
+if (process.env.VERCEL) {
+  const tmpDbPath = '/tmp/stylewalk.db';
+  if (!fs.existsSync(tmpDbPath)) {
+    if (fs.existsSync(origDbPath)) {
+      fs.copyFileSync(origDbPath, tmpDbPath);
+    }
+  }
+  dbPath = tmpDbPath;
+}
+
 const db = new sqlite3.Database(dbPath);
 console.log('SQLite DB path:', dbPath);
 
