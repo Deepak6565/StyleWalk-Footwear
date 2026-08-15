@@ -13,6 +13,8 @@ import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
 import GiftCardModal from './components/GiftCardModal';
 import WishlistDrawer from './components/WishlistDrawer';
+import AssistanceModal from './components/AssistanceModal';
+import ShoeSizeAdvisorModal from './components/ShoeSizeAdvisorModal';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
@@ -33,6 +35,8 @@ export default function App() {
   const [isRadialOpen, setIsRadialOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isAssistanceOpen, setIsAssistanceOpen] = useState(false);
+  const [isSizeAdvisorOpen, setIsSizeAdvisorOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchFilter, setSearchFilter] = useState('');
 
@@ -144,12 +148,25 @@ export default function App() {
                 </Routes>
               </div>
 
+              {/* Assistance & Customer Support Modal */}
+              <AssistanceModal
+                isOpen={isAssistanceOpen}
+                onClose={() => setIsAssistanceOpen(false)}
+                onOpenSizeAdvisor={() => setIsSizeAdvisorOpen(true)}
+              />
+
+              <ShoeSizeAdvisorModal
+                isOpen={isSizeAdvisorOpen}
+                onClose={() => setIsSizeAdvisorOpen(false)}
+              />
+
               {/* Floating Spatial Navigation Dock */}
               <SpatialDock
                 onToggleSearch={() => setIsSearchModalOpen(true)}
                 onToggleRadial={() => setIsRadialOpen(true)}
                 onToggleMenu={() => setIsMenuOpen(true)}
                 onOpenAuth={() => setIsAuthModalOpen(true)}
+                onOpenAssistance={() => setIsAssistanceOpen(true)}
               />
 
               {/* Cyber-Luxury StyleWalk Footer */}

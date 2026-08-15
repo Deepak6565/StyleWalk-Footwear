@@ -47,15 +47,18 @@ export default function AuthModal({ onClose }) {
     setError('');
     setLoading(true);
     try {
-      let loggedUser;
       if (role === 'admin') {
-        loggedUser = await login('admin@stylewalk.com', 'admin123');
+        setEmail('admin@stylewalk.com');
+        setPassword('admin123');
+        setError('Admin credentials loaded. Only authorized admin users may sign in.');
+        setLoading(false);
+        return;
       } else {
-        loggedUser = await login('customer@stylewalk.com', 'user123');
+        const loggedUser = await login('customer@stylewalk.com', 'user123');
+        handleRedirect(loggedUser);
       }
-      handleRedirect(loggedUser);
     } catch (err) {
-      setError('Demo login failed: ' + err.message);
+      setError('Demo customer login failed: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -94,11 +97,11 @@ export default function AuthModal({ onClose }) {
             {isLoginView ? 'WELCOME BACK' : 'CREATE CYBER ACCOUNT'}
           </h3>
           <p className="text-xs text-gray-400 mt-1">
-
+            Restricted portal access: Customers &amp; Authorized Administrators
           </p>
         </div>
 
-        {/* Quick Demo Pre-Fill Login Buttons */}
+        {/* Quick Demo Login Options */}
         <div className="grid grid-cols-2 gap-2 mb-6">
           <button
             type="button"
@@ -111,10 +114,10 @@ export default function AuthModal({ onClose }) {
           <button
             type="button"
             onClick={() => handleDemoLogin('admin')}
-            className="py-2.5 px-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold transition flex items-center justify-center space-x-2"
+            className="py-2.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-400 text-xs font-bold transition flex items-center justify-center space-x-2"
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>Demo Admin</span>
+            <span>Admin Portal</span>
           </button>
         </div>
 

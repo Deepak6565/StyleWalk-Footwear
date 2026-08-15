@@ -109,7 +109,7 @@ router.post('/', verifyToken, (req, res) => {
 router.get('/user', verifyToken, (req, res) => {
   const sql = `
     SELECT id, items_json, subtotal, discount_amount, total_amount, coupon_used,
-           payment_method, payment_status, payment_screenshot, rejection_reason, order_status, status_history, shipping_address, created_at
+           payment_method, payment_status, payment_screenshot, rejection_reason, order_status, status_history, shipping_address, tracking_number, created_at
     FROM Orders
     WHERE user_id = ?
     ORDER BY created_at DESC
@@ -133,7 +133,7 @@ router.get('/all', verifyToken, requireAdmin, (req, res) => {
     SELECT o.id, o.user_id, u.name as customer_name, u.email as customer_email,
            o.items_json, o.subtotal, o.discount_amount, o.total_amount, o.coupon_used,
            o.payment_method, o.payment_status, o.payment_screenshot, o.rejection_reason,
-           o.order_status, o.status_history, o.shipping_address, o.created_at
+           o.order_status, o.status_history, o.shipping_address, o.tracking_number, o.created_at
     FROM Orders o
     JOIN Users u ON o.user_id = u.id
     ORDER BY o.created_at DESC
@@ -151,47 +151,57 @@ router.get('/all', verifyToken, requireAdmin, (req, res) => {
   });
 });
 
-// PUT /api/orders/:id/status - Admin Update Order Fulfillment Status
+// PUT /api/orders/:id/status - Admin Update Order Fulfillment Status & Tracking Number
 router.put('/:id/status', verifyToken, requireAdmin, (req, res) => {
-  const { order_status } = req.body;
+  const { order_status, tracking_number } = req.body;
   const validStatuses = ['Confirmed', 'Payment Verification Pending', 'Processing', 'Packed', 'In Transit', 'Shipped', 'Delivered', 'Cancelled'];
 
-  if (!validStatuses.includes(order_status)) {
+  if (order_status && !validStatuses.includes(order_status)) {
     return res.status(400).json({ error: 'Invalid order status.' });
   }
 
-  db.get('SELECT status_history, created_at FROM Orders WHERE id = ?', [req.params.id], (errRow, row) => {
+  db.get('SELECT order_status, status_history, tracking_number, created_at FROM Orders WHERE id = ?', [req.params.id], (errRow, row) => {
+    if (errRow || !row) return res.status(404).json({ error: 'Order not found' });
+
+    const updatedStatus = order_status || row.order_status;
+    const updatedTracking = tracking_number !== undefined ? (tracking_number ? tracking_number.trim() : null) : row.tracking_number;
+
     let history = {};
-    if (row && row.status_history) {
+    if (row.status_history) {
       try { history = JSON.parse(row.status_history); } catch (e) {}
     }
 
     const nowIso = new Date().toISOString();
     if (!history.placed_at) history.placed_at = row?.created_at || nowIso;
 
-    if (['Confirmed', 'Processing', 'Packed', 'Shipped', 'In Transit', 'Delivered'].includes(order_status)) {
+    if (['Confirmed', 'Processing', 'Packed', 'Shipped', 'In Transit', 'Delivered'].includes(updatedStatus)) {
       if (!history.confirmed_at) history.confirmed_at = nowIso;
     }
-    if (['Processing', 'Packed', 'Shipped', 'In Transit', 'Delivered'].includes(order_status)) {
+    if (['Processing', 'Packed', 'Shipped', 'In Transit', 'Delivered'].includes(updatedStatus)) {
       if (!history.packed_at) history.packed_at = nowIso;
     }
-    if (['Shipped', 'In Transit', 'Delivered'].includes(order_status)) {
+    if (['Shipped', 'In Transit', 'Delivered'].includes(updatedStatus)) {
       if (!history.shipped_at) history.shipped_at = nowIso;
     }
-    if (order_status === 'Delivered') {
+    if (updatedStatus === 'Delivered') {
       if (!history.delivered_at) history.delivered_at = nowIso;
     }
 
     const updatedHistoryJson = JSON.stringify(history);
 
     db.run(
-      'UPDATE Orders SET order_status = ?, status_history = ? WHERE id = ?',
-      [order_status, updatedHistoryJson, req.params.id],
+      'UPDATE Orders SET order_status = ?, status_history = ?, tracking_number = ? WHERE id = ?',
+      [updatedStatus, updatedHistoryJson, updatedTracking, req.params.id],
       function (err) {
-        if (err) return res.status(500).json({ error: 'Error updating order status' });
-        if (this.changes === 0) return res.status(404).json({ error: 'Order not found' });
+        if (err) return res.status(500).json({ error: 'Error updating order status: ' + err.message });
 
-        res.json({ message: 'Order status updated successfully', orderId: req.params.id, order_status, status_history: updatedHistoryJson });
+        res.json({
+          message: 'Order status updated successfully',
+          orderId: req.params.id,
+          order_status: updatedStatus,
+          tracking_number: updatedTracking,
+          status_history: updatedHistoryJson
+        });
       }
     );
   });

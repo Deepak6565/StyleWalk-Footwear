@@ -28,10 +28,21 @@ import {
   Settings,
   BarChart3,
   Award,
-  Gift
+  Gift,
+  Truck,
+  Download,
+  MapPin,
+  Calendar,
+  FileText,
+  Star,
+  Filter,
+  ArrowUpDown,
+  Layers,
+  Info
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import GiftCardModal from '../components/GiftCardModal';
+import { downloadInvoicePdf } from '../utils/generateInvoicePdf';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -46,6 +57,16 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('payments'); // 'payments' | 'inventory' | 'orders' | 'settings'
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('PENDING'); // 'PENDING' | 'ALL' | 'APPROVED' | 'REJECTED'
+
+  // Fulfillment Orders search, filter & tracking state
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL');
+  const [editingTrackingMap, setEditingTrackingMap] = useState({});
+
+  // Inventory filters, sorting & detail inspection state
+  const [inventoryCategoryFilter, setInventoryCategoryFilter] = useState('ALL');
+  const [inventorySortBy, setInventorySortBy] = useState('id_desc');
+  const [inspectingProduct, setInspectingProduct] = useState(null);
 
   // Image Lightbox state
   const [activeScreenshotModal, setActiveScreenshotModal] = useState(null);
@@ -222,12 +243,24 @@ export default function AdminDashboard() {
 
   const handleOrderStatusUpdate = async (orderId, newStatus) => {
     try {
-      await api.put(`/orders/${orderId}/status`, { order_status: newStatus });
+      const res = await api.put(`/orders/${orderId}/status`, { order_status: newStatus });
       setOrders(prev =>
-        prev.map(o => (o.id === orderId ? { ...o, order_status: newStatus } : o))
+        prev.map(o => (o.id === orderId ? { ...o, order_status: newStatus, status_history: res.data.status_history } : o))
       );
     } catch (err) {
       alert('Failed to update order status.');
+    }
+  };
+
+  const handleSaveTracking = async (orderId, trackingNumber) => {
+    try {
+      const res = await api.put(`/orders/${orderId}/status`, { tracking_number: trackingNumber });
+      setOrders(prev =>
+        prev.map(o => (o.id === orderId ? { ...o, tracking_number: res.data.tracking_number } : o))
+      );
+      alert(`✅ Tracking number updated for Order #${orderId}`);
+    } catch (err) {
+      alert('Failed to update tracking number.');
     }
   };
 
@@ -649,77 +682,231 @@ export default function AdminDashboard() {
       )}
 
       {/* ═══════════════════════════════════════════════
-          TAB 2: PRODUCT INVENTORY
+          TAB 2: PRODUCT INVENTORY MANAGEMENT CENTER
           ═══════════════════════════════════════════════ */}
       {activeTab === 'inventory' && (
-        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-            <div className="relative w-64">
-              <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search products..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:border-[#4F46E5]"
-              />
+        <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm space-y-0">
+          
+          {/* Inventory Controls: Search, Category Filter & Sorting */}
+          <div className="p-4 sm:p-6 bg-gray-50/80 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              
+              {/* Search Bar */}
+              <div className="relative flex-1 sm:w-64">
+                <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search ID, Name, Brand, Material..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:border-[#4F46E5] shadow-sm"
+                />
+              </div>
+
+              {/* Category Filter Dropdown */}
+              <div className="flex items-center space-x-1 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
+                <Filter className="w-3.5 h-3.5 text-[#4F46E5]" />
+                <select
+                  value={inventoryCategoryFilter}
+                  onChange={(e) => setInventoryCategoryFilter(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-[#0F172A] focus:outline-none cursor-pointer"
+                >
+                  <option value="ALL">All Categories</option>
+                  <option value="Sneakers">Sneakers</option>
+                  <option value="Formal Shoes">Formal Shoes</option>
+                  <option value="Crocs & Clogs">Crocs &amp; Clogs</option>
+                  <option value="Slippers & Sandals">Slippers &amp; Sandals</option>
+                  <option value="Boots">Boots</option>
+                  <option value="Ethnic Footwear">Ethnic Footwear</option>
+                  <option value="Bags">Bags</option>
+                </select>
+              </div>
+
+              {/* Sorting Selector */}
+              <div className="flex items-center space-x-1 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm">
+                <ArrowUpDown className="w-3.5 h-3.5 text-[#4F46E5]" />
+                <select
+                  value={inventorySortBy}
+                  onChange={(e) => setInventorySortBy(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-[#0F172A] focus:outline-none cursor-pointer"
+                >
+                  <option value="id_desc">Order by ID (Newest First)</option>
+                  <option value="id_asc">Order by ID (Oldest First)</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="stock_low">Stock: Low Stock First</option>
+                  <option value="rating_desc">Rating: Highest Rated</option>
+                </select>
+              </div>
             </div>
-            <span className="text-xs text-[#64748B] font-bold">Total Models: {products.length}</span>
+
+            {/* Models Counter */}
+            <div className="text-xs font-extrabold text-[#4F46E5] bg-indigo-50 px-3.5 py-2 rounded-xl border border-indigo-200 shrink-0">
+              Total Footwear Models: {products.length}
+            </div>
           </div>
 
+          {/* Detailed Inventory Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50 text-[#64748B] uppercase tracking-widest font-extrabold text-[10px]">
-                  <th className="p-4">Product</th>
-                  <th className="p-4">Brand</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Price (₹)</th>
-                  <th className="p-4">Stock Qty</th>
-                  <th className="p-4">Badge</th>
-                  <th className="p-4 text-right">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-100/70 text-[#64748B] uppercase tracking-widest font-extrabold text-[10px]">
+                  <th className="p-4 w-16">ID</th>
+                  <th className="p-4">Footwear Model &amp; Specifications</th>
+                  <th className="p-4">Category &amp; Material</th>
+                  <th className="p-4">Price (INR)</th>
+                  <th className="p-4">Stock &amp; Availability</th>
+                  <th className="p-4 text-center">Ordered Action Controls</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {products
-                  .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.brand.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(p => {
+                    const matchCategory = inventoryCategoryFilter === 'ALL' || p.category === inventoryCategoryFilter;
+                    const q = searchQuery.toLowerCase();
+                    const matchQuery = !q ||
+                      String(p.id).includes(q) ||
+                      (p.name && p.name.toLowerCase().includes(q)) ||
+                      (p.brand && p.brand.toLowerCase().includes(q)) ||
+                      (p.material_badge && p.material_badge.toLowerCase().includes(q));
+                    return matchCategory && matchQuery;
+                  })
+                  .sort((a, b) => {
+                    if (inventorySortBy === 'id_desc') return b.id - a.id;
+                    if (inventorySortBy === 'id_asc') return a.id - b.id;
+                    if (inventorySortBy === 'price_desc') return (b.price_inr || b.price) - (a.price_inr || a.price);
+                    if (inventorySortBy === 'price_asc') return (a.price_inr || a.price) - (b.price_inr || b.price);
+                    if (inventorySortBy === 'stock_low') return a.stock_quantity - b.stock_quantity;
+                    if (inventorySortBy === 'rating_desc') return (b.rating || 0) - (a.rating || 0);
+                    return b.id - a.id;
+                  })
                   .map((p) => {
                     const priceInr = p.price_inr !== undefined ? p.price_inr : p.price;
+                    const isOutOfStock = p.stock_quantity <= 0;
+                    const isLowStock = p.stock_quantity > 0 && p.stock_quantity < 5;
+                    const sizesList = Array.isArray(p.sizes) ? p.sizes : (p.sizes_json ? JSON.parse(p.sizes_json) : []);
+
                     return (
                       <tr key={p.id} className="hover:bg-gray-50/80 transition">
-                        <td className="p-4 flex items-center space-x-3">
-                          <img src={p.image_url} alt={p.name} className="w-10 h-10 object-contain rounded-lg bg-white p-1 border border-gray-200" />
-                          <span className="font-bold text-[#0F172A] line-clamp-1">{p.name}</span>
+                        
+                        {/* ID */}
+                        <td className="p-4 font-mono font-black text-[#4F46E5] text-xs">
+                          #{p.id}
                         </td>
-                        <td className="p-4 font-extrabold text-[#4F46E5]">{p.brand}</td>
-                        <td className="p-4 text-[#475569]">{p.category}</td>
-                        <td className="p-4 font-extrabold text-[#059669]">₹{priceInr.toLocaleString('en-IN')}</td>
+
+                        {/* Product Model Details */}
                         <td className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <button onClick={() => handleStockUpdate(p.id, p.stock_quantity, -1)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#0F172A] border border-gray-200 transition cursor-pointer">
-                              <Minus className="w-3.5 h-3.5" />
-                            </button>
-                            <span className="px-3 py-1 rounded-lg font-extrabold bg-indigo-50 text-[#4F46E5] border border-indigo-200 text-xs shadow-sm min-w-[32px] text-center">
-                              {p.stock_quantity}
-                            </span>
-                            <button onClick={() => handleStockUpdate(p.id, p.stock_quantity, 1)} className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#0F172A] border border-gray-200 transition cursor-pointer">
-                              <Plus className="w-3.5 h-3.5" />
-                            </button>
+                          <div className="flex items-center space-x-3">
+                            <img src={p.image_url} alt={p.name} className="w-12 h-12 object-contain rounded-xl bg-white p-1 border border-gray-200 shrink-0 shadow-sm" />
+                            <div>
+                              <h4 className="font-extrabold text-[#0F172A] text-xs">{p.name}</h4>
+                              <div className="flex items-center space-x-2 mt-1">
+                                <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-[#4F46E5] text-[10px] font-black border border-indigo-200">
+                                  {p.brand}
+                                </span>
+                                <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5">
+                                  <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                                  {p.rating || 4.8} ({p.review_count || 12} reviews)
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-[#64748B] mt-0.5 font-medium">
+                                Sizes: {sizesList.join(', ')}
+                              </p>
+                            </div>
                           </div>
                         </td>
+
+                        {/* Category & Material Badge */}
                         <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase bg-emerald-50 text-[#059669] border border-emerald-200">
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-[#475569] block w-fit mb-1 border border-gray-200">
+                            {p.category}
+                          </span>
+                          <span className="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase bg-emerald-50 text-[#059669] border border-emerald-200 block w-fit">
                             {p.material_badge || 'Premium Craft'}
                           </span>
                         </td>
-                        <td className="p-4 text-right space-x-2">
-                          <button onClick={() => openEditModal(p)} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#4F46E5] transition cursor-pointer border border-gray-200">
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDeleteProduct(p.id)} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-rose-600 transition cursor-pointer border border-gray-200">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                        {/* Price */}
+                        <td className="p-4 font-extrabold text-[#059669] font-mono text-sm">
+                          ₹{priceInr.toLocaleString('en-IN')}
                         </td>
+
+                        {/* Stock Quantity & Status */}
+                        <td className="p-4">
+                          <div className="space-y-1.5">
+                            {/* Stock Badge */}
+                            {isOutOfStock ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-rose-100 text-rose-700 border border-rose-200 inline-block">
+                                ⚠️ Out of Stock
+                              </span>
+                            ) : isLowStock ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-amber-100 text-amber-800 border border-amber-200 inline-block animate-pulse">
+                                ⚡ Low Stock ({p.stock_quantity})
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-100 text-[#059669] border border-emerald-200 inline-block">
+                                In Stock
+                              </span>
+                            )}
+
+                            {/* Stock Adjustment Increments */}
+                            <div className="flex items-center space-x-1.5">
+                              <button
+                                onClick={() => handleStockUpdate(p.id, p.stock_quantity, -1)}
+                                title="Decrease Stock"
+                                className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#0F172A] border border-gray-200 transition cursor-pointer"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="px-2.5 py-0.5 rounded-lg font-extrabold bg-indigo-50 text-[#4F46E5] border border-indigo-200 text-xs shadow-sm min-w-[28px] text-center font-mono">
+                                {p.stock_quantity}
+                              </span>
+                              <button
+                                onClick={() => handleStockUpdate(p.id, p.stock_quantity, 1)}
+                                title="Increase Stock"
+                                className="p-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-[#0F172A] border border-gray-200 transition cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Ordered Action Buttons Column */}
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            {/* 1. Inspect Details Button */}
+                            <button
+                              onClick={() => setInspectingProduct(p)}
+                              title="View Detailed Product Specs"
+                              className="px-2.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-[#4F46E5] border border-indigo-200 text-xs font-bold transition flex items-center space-x-1 cursor-pointer shadow-sm"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Details</span>
+                            </button>
+
+                            {/* 2. Edit Model Button */}
+                            <button
+                              onClick={() => openEditModal(p)}
+                              title="Edit Product Model"
+                              className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition flex items-center space-x-1 cursor-pointer shadow-sm"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Edit</span>
+                            </button>
+
+                            {/* 3. Delete Model Button */}
+                            <button
+                              onClick={() => handleDeleteProduct(p.id)}
+                              title="Delete Product Model"
+                              className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition flex items-center space-x-1 cursor-pointer shadow-sm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </td>
+
                       </tr>
                     );
                   })}
@@ -730,45 +917,237 @@ export default function AdminDashboard() {
       )}
 
       {/* ═══════════════════════════════════════════════
-          TAB 3: FULFILLMENT ORDERS
+          TAB 3: FULFILLMENT ORDERS MANAGEMENT CENTER
           ═══════════════════════════════════════════════ */}
       {activeTab === 'orders' && (
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-4">
+        <div className="space-y-6">
+          {/* Filter & Search Bar */}
+          <div className="p-4 rounded-3xl bg-white border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="relative w-full md:w-80">
+              <Search className="w-4 h-4 text-[#64748B] absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search Order ID, Customer, Product, Tracking #..."
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:border-[#4F46E5] focus:bg-white"
+              />
+            </div>
+
+            {/* Status Filter Chips */}
+            <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto max-w-full">
+              {['ALL', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'In Transit', 'Delivered', 'Cancelled'].map((st) => (
+                <button
+                  key={st}
+                  onClick={() => setOrderStatusFilter(st)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+                    orderStatusFilter === st
+                      ? 'bg-[#4F46E5] text-white border-[#4F46E5] shadow-sm'
+                      : 'bg-gray-50 text-[#475569] hover:bg-gray-100 hover:text-[#0F172A] border-gray-200'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Orders List */}
           {orders.length === 0 ? (
-            <p className="text-xs text-[#64748B] p-8 text-center">No orders recorded yet.</p>
+            <div className="p-12 bg-white rounded-3xl text-center border border-gray-200 shadow-sm">
+              <ShoppingBag className="w-10 h-10 text-[#64748B] mx-auto mb-3" />
+              <h3 className="text-base font-bold text-[#0F172A]">No fulfillment orders found</h3>
+              <p className="text-xs text-[#64748B] mt-1">Customer purchases will be displayed here for management.</p>
+            </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((o) => (
-                <div key={o.id} className="p-4 rounded-2xl bg-gray-50 border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="font-extrabold text-[#4F46E5] text-sm font-mono">Order #{o.id}</span>
-                      <span className="text-xs text-[#64748B] font-bold">• Customer ID: #{o.user_id} ({o.customer_name})</span>
-                    </div>
-                    <p className="text-xs text-[#059669] font-extrabold mt-1">
-                      Total: ₹{(o.total_amount || 0).toLocaleString('en-IN')} | Method: {o.payment_method} | Verification: {o.payment_status}
-                    </p>
-                    <p className="text-[10px] text-[#64748B] font-semibold mt-0.5">{o.shipping_address}</p>
-                  </div>
+              {orders
+                .filter(o => {
+                  const matchStatus = orderStatusFilter === 'ALL' || o.order_status === orderStatusFilter;
+                  const query = orderSearchQuery.toLowerCase();
+                  const matchQuery = !query || 
+                    String(o.id).includes(query) ||
+                    (o.customer_name && o.customer_name.toLowerCase().includes(query)) ||
+                    (o.customer_email && o.customer_email.toLowerCase().includes(query)) ||
+                    (o.tracking_number && o.tracking_number.toLowerCase().includes(query)) ||
+                    (o.items && o.items.some(it => it.name && it.name.toLowerCase().includes(query)));
+                  return matchStatus && matchQuery;
+                })
+                .map((o) => {
+                  const totalItemsQty = (o.items || []).reduce((acc, item) => acc + (item.quantity || 1), 0);
+                  const isCOD = o.payment_method === 'COD';
+                  const isApproved = o.payment_status === 'Payment Approved' || isCOD;
+                  const currentTracking = editingTrackingMap[o.id] !== undefined ? editingTrackingMap[o.id] : (o.tracking_number || '');
 
-                  <div className="flex items-center space-x-3">
-                    <label className="text-xs font-bold text-[#475569]">Order Status:</label>
-                    <select
-                      value={o.order_status}
-                      onChange={(e) => handleOrderStatusUpdate(o.id, e.target.value)}
-                      className="py-1.5 px-3 rounded-xl bg-white border border-gray-200 text-xs font-extrabold text-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
-                    >
-                      <option value="Confirmed">Confirmed</option>
-                      <option value="Payment Verification Pending">Payment Verification Pending</option>
-                      <option value="Processing">Processing</option>
-                      <option value="Packed">Packed</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Delivered">Delivered</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                </div>
-              ))}
+                  return (
+                    <div key={o.id} className="p-6 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4 text-left">
+                      
+                      {/* Order Metadata Header Bar */}
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-4 border-b border-gray-200">
+                        <div>
+                          <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+                            <span className="text-base font-black text-[#0F172A] font-mono">ORDER #{o.id}</span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-indigo-50 text-[#4F46E5] border border-indigo-200">
+                              Customer: {o.customer_name} ({o.customer_email})
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-[#475569]">
+                              {isCOD ? '💵 CASH ON DELIVERY' : '📱 ONLINE PAYMENT'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#64748B] mt-1 flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5 text-[#4F46E5]" />
+                            <span>Placed on {new Date(o.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => downloadInvoicePdf(o)}
+                            className="px-3.5 py-2 rounded-xl bg-[#4F46E5] hover:bg-[#3730A3] text-white text-xs font-extrabold transition flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>DOWNLOAD PDF INVOICE</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Main Fulfillment Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                        {/* Product Details & Items List (Col 7) */}
+                        <div className="lg:col-span-7 space-y-3">
+                          <span className="text-[10px] font-extrabold uppercase text-[#4F46E5] tracking-wider block">
+                            Product Details &amp; Quantity Breakdown ({totalItemsQty} items total):
+                          </span>
+
+                          <div className="space-y-2">
+                            {(o.items || []).map((item, idx) => (
+                              <div key={idx} className="p-3 rounded-2xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3 text-xs">
+                                <div className="flex items-center space-x-3 overflow-hidden">
+                                  <img
+                                    src={item.image_url || 'https://images.unsplash.com/photo-1542291026-7eec264c27ff'}
+                                    alt={item.name}
+                                    className="w-11 h-11 object-contain rounded-xl bg-white p-1 border border-gray-200 shrink-0"
+                                  />
+                                  <div className="overflow-hidden">
+                                    <h5 className="font-bold text-[#0F172A] truncate">{item.name}</h5>
+                                    <p className="text-[10px] text-[#64748B]">
+                                      Brand: <strong className="text-[#0F172A]">{item.brand || 'StyleWalk'}</strong> | Size: <strong className="text-[#4F46E5]">{item.selectedSize || 'UK 8'}</strong>
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="text-right shrink-0">
+                                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-[#4F46E5] text-[10px] font-black border border-indigo-200 block mb-0.5">
+                                    Qty: {item.quantity}
+                                  </span>
+                                  <span className="text-xs font-extrabold text-[#059669] font-mono">
+                                    ₹{((item.price_inr || item.price || 0) * item.quantity).toLocaleString('en-IN')}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Financial Summary */}
+                          <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex justify-between items-center text-xs font-bold">
+                            <span className="text-[#047857]">Grand Total Amount:</span>
+                            <span className="text-sm font-black text-[#059669] font-mono">₹{(o.total_amount || 0).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+
+                        {/* Order Management, Status & Tracking (Col 5) */}
+                        <div className="lg:col-span-5 space-y-4">
+                          
+                          {/* Payment & Delivery Badges */}
+                          <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200 space-y-3 text-xs">
+                            <div className="flex justify-between items-center pb-2 border-b border-gray-200">
+                              <span className="font-bold text-[#64748B]">Payment Status:</span>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+                                o.payment_status === 'Payment Approved' || o.payment_status === 'Confirmed'
+                                  ? 'bg-emerald-100 text-[#059669] border border-emerald-200'
+                                  : o.payment_status === 'Payment Verification Pending'
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  : 'bg-rose-100 text-rose-700 border border-rose-200'
+                              }`}>
+                                {o.payment_status}
+                              </span>
+                            </div>
+
+                            {/* Fulfillment Status Selector */}
+                            <div>
+                              <label className="block text-[10px] font-extrabold uppercase text-[#475569] mb-1">
+                                Fulfillment Order Status:
+                              </label>
+                              <select
+                                value={o.order_status}
+                                onChange={(e) => handleOrderStatusUpdate(o.id, e.target.value)}
+                                className="w-full p-2 rounded-xl bg-white border border-gray-300 text-xs font-extrabold text-[#4F46E5] focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-sm"
+                              >
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Payment Verification Pending">Payment Verification Pending</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Packed">Packed</option>
+                                <option value="Shipped">Shipped</option>
+                                <option value="In Transit">In Transit</option>
+                                <option value="Delivered">Delivered</option>
+                                <option value="Cancelled">Cancelled</option>
+                              </select>
+                            </div>
+
+                            {/* Tracking Number Input & Save */}
+                            <div>
+                              <label className="block text-[10px] font-extrabold uppercase text-[#475569] mb-1">
+                                Logistics Tracking Number:
+                              </label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="e.g. SW-TRK-984712"
+                                  value={currentTracking}
+                                  onChange={(e) => setEditingTrackingMap({ ...editingTrackingMap, [o.id]: e.target.value })}
+                                  className="flex-1 px-3 py-1.5 rounded-xl bg-white border border-gray-300 text-xs font-bold text-[#0F172A] placeholder-[#64748B] focus:outline-none focus:border-[#4F46E5]"
+                                />
+                                <button
+                                  onClick={() => handleSaveTracking(o.id, currentTracking)}
+                                  className="px-3 py-1.5 rounded-xl bg-[#4F46E5] hover:bg-[#3730A3] text-white text-xs font-extrabold transition cursor-pointer shadow-sm"
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Shipping Address */}
+                            <div className="pt-2 border-t border-gray-200">
+                              <span className="text-[10px] font-extrabold uppercase text-[#64748B] block mb-1">Shipping Address:</span>
+                              <p className="text-[11px] text-[#0F172A] font-medium leading-snug bg-white p-2 rounded-xl border border-gray-200">
+                                {o.shipping_address}
+                              </p>
+                            </div>
+
+                            {/* Live Delivery Status Summary */}
+                            <div className="pt-2 border-t border-gray-200 flex items-center justify-between text-[11px]">
+                              <span className="text-[#64748B] font-semibold">Delivery Status:</span>
+                              <span className="font-extrabold text-[#4F46E5]">
+                                {o.order_status === 'Delivered'
+                                  ? '✅ Delivered to Customer'
+                                  : o.order_status === 'Shipped' || o.order_status === 'In Transit'
+                                  ? '🚚 In Transit with Carrier'
+                                  : o.order_status === 'Packed'
+                                  ? '📦 Packed - Awaiting Pickup'
+                                  : o.order_status === 'Cancelled'
+                                  ? '❌ Order Cancelled'
+                                  : '⚙️ Processing in Warehouse'}
+                              </span>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -1105,6 +1484,134 @@ export default function AdminDashboard() {
               />
               <p className="text-xs text-white mt-4 font-bold">Admin Inspection: Submitted Payment Screenshot Proof</p>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* DETAILED PRODUCT SPECS INSPECTION MODAL */}
+      <AnimatePresence>
+        {inspectingProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-gray-950/60 backdrop-blur-md flex items-center justify-center p-4"
+            onClick={() => setInspectingProduct(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative max-w-xl w-full bg-white border border-gray-200 rounded-3xl p-6 text-left shadow-2xl space-y-5 overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                <div className="flex items-center space-x-2 font-heading font-extrabold text-[#0F172A]">
+                  <Package className="w-5 h-5 text-[#4F46E5]" />
+                  <span className="uppercase text-sm">INVENTORY MODEL SPECS – #{inspectingProduct.id}</span>
+                </div>
+                <button
+                  onClick={() => setInspectingProduct(null)}
+                  className="p-1 rounded-full text-gray-400 hover:text-[#0F172A] hover:bg-gray-100 transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Body: Image & Specs Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
+                
+                {/* Image Stage (5 cols) */}
+                <div className="sm:col-span-5 p-3 rounded-2xl bg-gray-50 border border-gray-200 text-center">
+                  <img
+                    src={inspectingProduct.image_url}
+                    alt={inspectingProduct.name}
+                    className="w-full h-44 object-contain rounded-xl bg-white p-2 border border-gray-200 shadow-sm"
+                  />
+                  <span className="mt-2 inline-block px-3 py-1 rounded-full text-[9px] font-extrabold uppercase bg-emerald-50 text-[#059669] border border-emerald-200">
+                    {inspectingProduct.material_badge || 'Premium Craft'}
+                  </span>
+                </div>
+
+                {/* Specs Details (7 cols) */}
+                <div className="sm:col-span-7 space-y-3 text-xs">
+                  <div>
+                    <span className="px-2.5 py-0.5 rounded-md bg-indigo-50 text-[#4F46E5] text-[10px] font-black border border-indigo-200 uppercase">
+                      {inspectingProduct.brand}
+                    </span>
+                    <h3 className="text-lg font-black text-[#0F172A] font-heading mt-1">{inspectingProduct.name}</h3>
+                    <p className="text-[#64748B] text-[11px] mt-0.5">Category: <strong>{inspectingProduct.category}</strong></p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 grid grid-cols-2 gap-2 font-extrabold">
+                    <div>
+                      <span className="text-[10px] text-[#64748B] uppercase block font-semibold">Retail Price:</span>
+                      <span className="text-emerald-600 font-mono text-base">₹{(inspectingProduct.price_inr || inspectingProduct.price || 0).toLocaleString('en-IN')}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-[#64748B] uppercase block font-semibold">Stock Quantity:</span>
+                      <span className={`text-base font-mono ${
+                        inspectingProduct.stock_quantity <= 0
+                          ? 'text-rose-600'
+                          : inspectingProduct.stock_quantity < 5
+                          ? 'text-amber-600'
+                          : 'text-[#4F46E5]'
+                      }`}>
+                        {inspectingProduct.stock_quantity} Units
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Rating & Review metrics */}
+                  <div className="flex items-center space-x-2 text-amber-600 font-bold">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    <span>{inspectingProduct.rating || 4.8} / 5.0 Rating</span>
+                    <span className="text-[#64748B] font-normal">({inspectingProduct.review_count || 12} customer reviews)</span>
+                  </div>
+
+                  {/* Available Sizes List */}
+                  <div>
+                    <span className="text-[10px] font-extrabold uppercase text-[#64748B] block mb-1">Available Size Variants:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(Array.isArray(inspectingProduct.sizes)
+                        ? inspectingProduct.sizes
+                        : (inspectingProduct.sizes_json ? JSON.parse(inspectingProduct.sizes_json) : [])
+                      ).map((sz, idx) => (
+                        <span key={idx} className="px-2 py-0.5 rounded-lg bg-gray-100 border border-gray-200 text-[10px] font-bold text-[#0F172A]">
+                          {sz}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end space-x-3 pt-3 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    const prod = inspectingProduct;
+                    setInspectingProduct(null);
+                    openEditModal(prod);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs transition cursor-pointer flex items-center space-x-1.5 shadow-sm"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>EDIT PRODUCT SPECS</span>
+                </button>
+
+                <button
+                  onClick={() => setInspectingProduct(null)}
+                  className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#475569] font-bold text-xs transition cursor-pointer"
+                >
+                  CLOSE
+                </button>
+              </div>
+
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

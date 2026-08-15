@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowUpRight, Sparkles, Footprints } from 'lucide-react';
+import { X, ArrowUpRight, Sparkles, Footprints, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function FullScreenKineticMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeImage, setActiveImage] = useState('https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80');
   const [activeLabel, setActiveLabel] = useState('Phantom Stealth X1');
 
@@ -35,7 +37,8 @@ export default function FullScreenKineticMenu({ isOpen, onClose }) {
       subtitle: 'Inventory Modifiers & Realtime Stock',
       path: '/admin',
       image: 'https://images.unsplash.com/photo-1608256246200-53e635b5b65f?auto=format&fit=crop&w=800&q=80',
-      badge: 'RESTRICTED'
+      badge: 'RESTRICTED',
+      adminOnly: true
     }
   ];
 
@@ -84,6 +87,10 @@ export default function FullScreenKineticMenu({ isOpen, onClose }) {
                   whileHover={{ x: 20 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   onClick={() => {
+                    if (item.adminOnly && (!user || user.role !== 'admin')) {
+                      alert('Access Denied: Admin section is restricted to authorized administrators only.');
+                      return;
+                    }
                     navigate(item.path);
                     onClose();
                   }}

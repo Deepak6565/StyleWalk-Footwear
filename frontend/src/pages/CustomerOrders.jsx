@@ -15,10 +15,14 @@ import {
   QrCode, 
   Eye, 
   ShieldCheck,
-  X
+  X,
+  FileText,
+  Download,
+  Copy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import OrderTracker from '../components/OrderTracker';
+import { downloadInvoicePdf } from '../utils/generateInvoicePdf';
 
 export default function CustomerOrders() {
   const navigate = useNavigate();
@@ -26,6 +30,7 @@ export default function CustomerOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeImageModal, setActiveImageModal] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -46,6 +51,12 @@ export default function CustomerOrders() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyToClipboard = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   const getStatusStep = (orderStatus, paymentStatus) => {
@@ -79,7 +90,7 @@ export default function CustomerOrders() {
             <Package className="w-7 h-7 text-[#4F46E5]" />
             MY ORDERS &amp; TRACKING
           </h1>
-          <p className="text-xs text-[#64748B] mt-1">Real-time payment verification &amp; order tracking status</p>
+          <p className="text-xs text-[#64748B] mt-1">Real-time order fulfillment status &amp; tax invoice download</p>
         </div>
 
         <button
@@ -128,14 +139,20 @@ export default function CustomerOrders() {
                 animate={{ opacity: 1, y: 0 }}
                 className="p-6 rounded-3xl bg-white border border-gray-200 space-y-6 text-left shadow-sm"
               >
-                {/* Header Row: Order ID + Date + Badges */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-200">
+                {/* Header Row: Order ID + Date + Badges + Download Invoice Button */}
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-gray-200">
                   <div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                       <span className="text-base font-extrabold text-[#0F172A] font-mono">ORDER #{order.id}</span>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-gray-100 text-[#475569]">
                         {isCOD ? '💵 CASH ON DELIVERY' : '📱 ONLINE UPI'}
                       </span>
+                      {order.tracking_number && (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-50 text-[#4F46E5] border border-indigo-200 flex items-center gap-1">
+                          <Truck className="w-3 h-3" />
+                          Tracking: {order.tracking_number}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[11px] text-[#64748B] mt-1">
                       Placed on {new Date(order.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -168,8 +185,17 @@ export default function CustomerOrders() {
 
                     {/* Order Fulfillment Status Badge */}
                     <span className="px-3 py-1.5 rounded-full text-xs font-bold uppercase bg-indigo-50 text-[#4F46E5] border border-indigo-200">
-                      Order Status: {order.order_status}
+                      Status: {order.order_status}
                     </span>
+
+                    {/* PDF Invoice Download Button */}
+                    <button
+                      onClick={() => downloadInvoicePdf(order, user)}
+                      className="px-3.5 py-1.5 rounded-xl bg-[#4F46E5] hover:bg-[#3730A3] text-white text-xs font-extrabold transition flex items-center space-x-1.5 cursor-pointer shadow-md shadow-indigo-500/20"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>INVOICE (PDF)</span>
+                    </button>
                   </div>
                 </div>
 

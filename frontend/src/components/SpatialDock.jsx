@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Home,
+  Grid,
   Compass,
   Search,
   ShoppingBag,
@@ -11,8 +12,11 @@ import {
   Menu as MenuIcon,
   X,
   PackageCheck,
+  Headphones,
+  ShieldCheck,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -22,6 +26,7 @@ export default function SpatialDock({
   onToggleRadial,
   onToggleMenu,
   onOpenAuth,
+  onOpenAssistance,
   wishlistCount = 0
 }) {
   const navigate = useNavigate();
@@ -48,20 +53,33 @@ export default function SpatialDock({
 
   const sections = [
     {
+      label: 'Main Navigation',
       items: [
         {
           id: 'home',
-          label: 'Home Gallery',
+          label: 'Home',
           icon: Home,
           action: () => { navigate('/'); close(); },
           active: location.pathname === '/'
         },
         {
-          id: 'radial',
-          label: 'Category Hub',
+          id: 'gallery',
+          label: 'Gallery',
+          icon: Grid,
+          action: () => {
+            navigate('/');
+            setTimeout(() => {
+              document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+            close();
+          },
+          active: false
+        },
+        {
+          id: 'categories',
+          label: 'Categories',
           icon: Compass,
           action: () => { onToggleRadial(); close(); },
-          badge: totalCartCount === 0 ? null : null,
           active: false
         },
         {
@@ -70,11 +88,11 @@ export default function SpatialDock({
           icon: Search,
           action: () => { onToggleSearch(); close(); },
           active: false
-        },
+        }
       ]
     },
     {
-      label: 'Shopping',
+      label: 'Store & Orders',
       items: [
         {
           id: 'cart',
@@ -91,25 +109,35 @@ export default function SpatialDock({
           action: () => { if (!user) onOpenAuth(); else navigate('/orders'); close(); },
           active: location.pathname === '/orders'
         },
+        {
+          id: 'assistance',
+          label: 'Assistance',
+          icon: Headphones,
+          action: () => { if (onOpenAssistance) onOpenAssistance(); close(); },
+          active: false,
+          color: 'indigo'
+        }
       ]
     },
     {
-      label: 'Account',
+      label: 'Account & Admin',
       items: [
         ...(user ? [
-          ...(user.role === 'admin' ? [{
-            id: 'admin',
-            label: 'Admin Dashboard',
-            icon: ShieldAlert,
-            action: () => { navigate('/admin'); close(); },
-            active: location.pathname === '/admin',
-            color: 'indigo'
-          }] : []),
+          ...(user.role === 'admin' ? [
+            {
+              id: 'admin-dashboard',
+              label: 'Admin Dashboard',
+              icon: ShieldAlert,
+              action: () => { navigate('/admin'); close(); },
+              active: location.pathname === '/admin',
+              color: 'indigo'
+            }
+          ] : []),
           {
             id: 'user',
             label: user.name,
             icon: User,
-            sublabel: user.email,
+            sublabel: user.role === 'admin' ? 'Store Manager' : user.email,
             action: () => { },
             active: false,
             noHover: true
@@ -133,7 +161,7 @@ export default function SpatialDock({
           }
         ]),
         {
-          id: 'menu',
+          id: 'more-menu',
           label: 'More Navigation',
           icon: MenuIcon,
           action: () => { onToggleMenu(); close(); },

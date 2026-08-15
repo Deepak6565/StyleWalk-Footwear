@@ -102,6 +102,7 @@ db.serialize(() => {
       order_status TEXT DEFAULT 'Confirmed',
       status_history TEXT DEFAULT NULL,
       shipping_address TEXT NOT NULL,
+      tracking_number TEXT DEFAULT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
     )
@@ -122,6 +123,7 @@ db.serialize(() => {
   db.run("ALTER TABLE Orders ADD COLUMN payment_screenshot TEXT DEFAULT NULL", () => {});
   db.run("ALTER TABLE Orders ADD COLUMN rejection_reason TEXT DEFAULT NULL", () => {});
   db.run("ALTER TABLE Orders ADD COLUMN status_history TEXT DEFAULT NULL", () => {});
+  db.run("ALTER TABLE Orders ADD COLUMN tracking_number TEXT DEFAULT NULL", () => {});
 
   // Seed default Admin UPI QR Code
   db.get("SELECT value FROM AdminSettings WHERE key = 'admin_qr_code'", (err, row) => {
