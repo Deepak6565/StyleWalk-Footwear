@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { X, Lock, Mail, User, ShieldAlert, CheckCircle2, ArrowRight, KeyRound, ShieldCheck } from 'lucide-react';
+import { X, Lock, Mail, User, ShieldAlert, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ onClose, defaultAdmin = false }) {
@@ -9,13 +9,17 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
   const navigate = useNavigate();
   const [isAdminPortal, setIsAdminPortal] = useState(defaultAdmin);
   const [isLoginView, setIsLoginView] = useState(true);
-  const [email, setEmail] = useState(defaultAdmin ? 'admin@stylewalk.com' : '');
-  const [password, setPassword] = useState(defaultAdmin ? 'admin123' : '');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRedirect = (authenticatedUser) => {
+    if (isAdminPortal && authenticatedUser?.role !== 'admin') {
+      setError('Access Denied: Only authorized StyleWalk store administrators can enter the Admin Portal.');
+      return;
+    }
     onClose();
     if (authenticatedUser?.role === 'admin') {
       navigate('/admin');
@@ -47,15 +51,15 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
   const handleSelectAdminPortal = () => {
     setIsAdminPortal(true);
     setIsLoginView(true);
-    setEmail('admin@stylewalk.com');
-    setPassword('admin123');
+    setEmail('');
+    setPassword('');
     setError('');
   };
 
   const handleSelectCustomerPortal = () => {
     setIsAdminPortal(false);
-    setEmail('customer@stylewalk.com');
-    setPassword('user123');
+    setEmail('');
+    setPassword('');
     setError('');
   };
 
@@ -94,7 +98,7 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
             {isAdminPortal ? (
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1.5">
                 <ShieldAlert className="w-3.5 h-3.5" />
-                <span>STYLEWALK ADMIN PORTAL</span>
+                <span>RESTRICTED ADMIN ACCESS</span>
               </span>
             ) : (
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center gap-1.5">
@@ -113,7 +117,7 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
           </h3>
           <p className="text-xs text-gray-400 mt-1">
             {isAdminPortal
-              ? 'Authorized Administrator Authentication & Real-Time Inventory Suite'
+              ? 'Authorized StyleWalk Administrator Authentication & Inventory Control'
               : 'Restricted Portal Access: Customers & Authenticated Store Members'}
           </p>
         </div>
@@ -146,22 +150,6 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
             <span>Admin Portal</span>
           </button>
         </div>
-
-        {/* Auto-Loaded Admin Details Info Banner */}
-        {isAdminPortal && (
-          <div className="mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold space-y-1">
-            <div className="flex items-center space-x-1.5 font-extrabold text-amber-400 uppercase tracking-wider text-[10px]">
-              <KeyRound className="w-3.5 h-3.5" />
-              <span>AUTHORIZED ADMIN CREDENTIALS LOADED</span>
-            </div>
-            <p className="text-[11px] text-gray-300">
-              Admin Email: <strong className="text-white font-mono">admin@stylewalk.com</strong>
-            </p>
-            <p className="text-[11px] text-gray-300">
-              Password: <strong className="text-white font-mono">admin123</strong>
-            </p>
-          </div>
-        )}
 
         {error && (
           <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
@@ -199,7 +187,7 @@ export default function AuthModal({ onClose, defaultAdmin = false }) {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={isAdminPortal ? 'admin@stylewalk.com' : 'customer@stylewalk.com'}
+                placeholder={isAdminPortal ? 'Enter Admin Email...' : 'customer@stylewalk.com'}
                 className={`w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/5 border text-xs font-bold text-white placeholder-gray-500 focus:outline-none ${
                   isAdminPortal
                     ? 'border-amber-500/40 focus:border-amber-500 focus:bg-white/10'
