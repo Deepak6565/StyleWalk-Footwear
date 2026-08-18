@@ -368,7 +368,7 @@ export default function Home({ selectedCategory: propCategory, onSelectCategory,
               id: 'Kids',
               title: 'KIDS & YOUTH',
               subtitle: 'School Shoes & Sandals',
-              img: 'https://images.unsplash.com/photo-1514989940723-e8e51635b782?auto=format&fit=crop&w=600&q=80',
+              img: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=600&q=80',
               cat: 'Boys Footwear',
               color: 'from-emerald-600 to-teal-900'
             },

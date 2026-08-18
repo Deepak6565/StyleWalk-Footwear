@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowUpRight, Sparkles, Footprints, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function FullScreenKineticMenu({ isOpen, onClose }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [activeImage, setActiveImage] = useState('https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80');
   const [activeLabel, setActiveLabel] = useState('Phantom Stealth X1');
+
+  const isAdminPage = location.pathname === '/admin';
 
   const menuItems = [
     {
@@ -18,13 +21,15 @@ export default function FullScreenKineticMenu({ isOpen, onClose }) {
       image: 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80',
       badge: 'FEATURED'
     },
-    {
-      title: 'ORDER HISTORY',
-      subtitle: 'Track Order Shipments & Invoices',
-      path: '/orders',
-      image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
-      badge: 'LIVE STATUS'
-    },
+    ...(!isAdminPage ? [
+      {
+        title: 'ORDER HISTORY',
+        subtitle: 'Track Order Shipments & Invoices',
+        path: '/orders',
+        image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+        badge: 'LIVE STATUS'
+      }
+    ] : []),
     {
       title: 'CHECKOUT & CART',
       subtitle: 'Complete Stripe Encrypted Checkout',

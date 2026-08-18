@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Footprints,
   MapPin,
@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 
 export default function Footer({ onOpenRadialCategory }) {
+  const location = useLocation();
+  const isAdminPage = location.pathname === '/admin';
 
   const scrollToProducts = () => {
     const el = document.getElementById('products-section');
@@ -107,12 +109,14 @@ export default function Footer({ onOpenRadialCategory }) {
                   <span>Category Hub</span>
                 </button>
               </li>
-              <li>
-                <Link to="/orders" className="hover:text-white transition-colors flex items-center gap-1.5 group">
-                  <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
-                  <span>Order Tracking</span>
-                </Link>
-              </li>
+              {!isAdminPage && (
+                <li>
+                  <Link to="/orders" className="hover:text-white transition-colors flex items-center gap-1.5 group">
+                    <ChevronRight className="w-3.5 h-3.5 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+                    <span>Order Tracking</span>
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/admin" className="hover:text-white transition-colors flex items-center gap-1.5 group">
                   <ChevronRight className="w-3.5 h-3.5 text-purple-400 group-hover:translate-x-1 transition-transform" />

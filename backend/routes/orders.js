@@ -130,12 +130,12 @@ router.get('/user', verifyToken, (req, res) => {
 // GET /api/orders/all - Admin View All Orders
 router.get('/all', verifyToken, requireAdmin, (req, res) => {
   const sql = `
-    SELECT o.id, o.user_id, u.name as customer_name, u.email as customer_email,
+    SELECT o.id, o.user_id, COALESCE(u.name, 'Customer') as customer_name, COALESCE(u.email, 'N/A') as customer_email,
            o.items_json, o.subtotal, o.discount_amount, o.total_amount, o.coupon_used,
            o.payment_method, o.payment_status, o.payment_screenshot, o.rejection_reason,
            o.order_status, o.status_history, o.shipping_address, o.tracking_number, o.created_at
     FROM Orders o
-    JOIN Users u ON o.user_id = u.id
+    LEFT JOIN Users u ON o.user_id = u.id
     ORDER BY o.created_at DESC
   `;
 

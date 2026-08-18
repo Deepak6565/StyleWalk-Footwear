@@ -50,6 +50,7 @@ export default function SpatialDock({
   }, [isOpen]);
 
   const close = () => setIsOpen(false);
+  const isAdminPage = location.pathname === '/admin';
 
   const sections = [
     {
@@ -91,7 +92,7 @@ export default function SpatialDock({
         }
       ]
     },
-    {
+    ...(!isAdminPage ? [{
       label: 'Store & Orders',
       items: [
         {
@@ -118,7 +119,7 @@ export default function SpatialDock({
           color: 'indigo'
         }
       ]
-    },
+    }] : []),
     {
       label: 'Account & Admin',
       items: [
@@ -211,7 +212,7 @@ export default function SpatialDock({
         </AnimatePresence>
 
         {/* Cart badge on toggle when closed */}
-        {!isOpen && totalCartCount > 0 && (
+        {!isOpen && !isAdminPage && totalCartCount > 0 && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
