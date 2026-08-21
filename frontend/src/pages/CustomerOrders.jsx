@@ -287,17 +287,28 @@ export default function CustomerOrders() {
                       <p className="text-[11px] text-gray-200 leading-snug">{order.shipping_address}</p>
                     </div>
 
-                    {/* Uploaded Screenshot Preview Button if Online Order */}
+                    {/* Uploaded Screenshot Preview or Razorpay ID */}
                     {order.payment_screenshot && (
-                      <div className="pt-2 border-t border-white/10">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5">Submitted Payment Screenshot:</span>
-                        <button
-                          onClick={() => setActiveImageModal(order.payment_screenshot)}
-                          className="w-full p-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer"
-                        >
-                          <Eye className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>View Payment Proof Screenshot</span>
-                        </button>
+                      <div className="pt-2 border-t border-gray-200">
+                        {order.payment_screenshot.startsWith('RAZORPAY_ID:') ? (
+                          <div className="p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-[#4F46E5] text-[11px] font-bold flex items-center justify-between">
+                            <span>Razorpay Txn ID:</span>
+                            <span className="font-mono text-[10px] bg-white px-2 py-0.5 rounded border border-indigo-200 text-[#0F172A]">
+                              {order.payment_screenshot.replace('RAZORPAY_ID:', '')}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase block mb-1.5">Submitted Payment Screenshot:</span>
+                            <button
+                              onClick={() => setActiveImageModal(order.payment_screenshot)}
+                              className="w-full p-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold transition flex items-center justify-center space-x-1.5 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-indigo-400" />
+                              <span>View Payment Proof Screenshot</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>

@@ -217,6 +217,12 @@ export function downloadInvoicePdf(order, user = {}) {
               <span style="color: #64748B;">Payment Method:</span>
               <strong style="color: #0F172A;">${paymentMethod}</strong>
             </div>
+            ${order.payment_screenshot && order.payment_screenshot.startsWith('RAZORPAY_ID:') ? `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+              <span style="color: #64748B;">Razorpay Txn ID:</span>
+              <strong style="color: #4F46E5; font-family: monospace;">${order.payment_screenshot.replace('RAZORPAY_ID:', '')}</strong>
+            </div>
+            ` : ''}
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
               <span style="color: #64748B;">Payment Status:</span>
               <strong style="color: #059669; background: #ECFDF5; padding: 2px 8px; border-radius: 6px;">${paymentStatus}</strong>

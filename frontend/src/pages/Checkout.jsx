@@ -16,17 +16,34 @@ import {
   AlertTriangle,
   X,
   FileCheck,
-  Check
+  Check,
+  Zap,
+  Smartphone,
+  Globe
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export default function Checkout() {
   const navigate = useNavigate();
   const { cartItems, subtotal, appliedCoupon, discountAmount, totalAmount, clearCart, applyCoupon } = useCart();
   const { user } = useAuth();
 
-  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' | 'ONLINE'
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY'); // 'RAZORPAY' | 'COD' | 'ONLINE'
   const [billingDetails, setBillingDetails] = useState({
     firstName: '',
     lastName: '',
@@ -187,7 +204,7 @@ export default function Checkout() {
       }
 
       if (paymentMethod === 'ONLINE' && !uploadedScreenshotUrl) {
-        setErrorMsg('Payment screenshot proof must be uploaded before confirming online payment.');
+        setErrorMsg('Payment screenshot proof must be uploaded before confirming manual online payment.');
         setProcessing(false);
         return;
       }
@@ -201,6 +218,76 @@ export default function Checkout() {
         billingDetails.orderNotes.trim() ? `Order Notes: ${billingDetails.orderNotes.trim()}` : ''
       ].filter(Boolean).join('\n');
 
+      if (paymentMethod === 'RAZORPAY') {
+        const scriptLoaded = await loadRazorpayScript();
+
+        if (!scriptLoaded || !window.Razorpay) {
+          setErrorMsg('Failed to load Razorpay Checkout SDK. Please check your internet connection.');
+          setProcessing(false);
+          return;
+        }
+
+        const amountInPaise = Math.round(totalAmount * 100);
+
+        const options = {
+          key: 'rzp_test_TSNPovbfc4sfzF',
+          amount: amountInPaise,
+          currency: 'INR',
+          name: 'StyleWalk Footwear',
+          description: 'Footwear Purchase Payment',
+          image: 'https://razorpay.com/favicon.png',
+          prefill: {
+            name: `${billingDetails.firstName.trim()} ${billingDetails.lastName.trim()}`,
+            email: billingDetails.email.trim(),
+            contact: billingDetails.phone.trim() || '9999999999'
+          },
+          theme: {
+            color: '#4F46E5'
+          },
+          handler: async function (response) {
+            console.log('[RAZORPAY SUCCESS] Payment ID received:', response.razorpay_payment_id);
+            try {
+              const orderPayload = {
+                items: cartItems,
+                subtotal,
+                discount_amount: discountAmount,
+                total_amount: totalAmount,
+                coupon_used: appliedCoupon ? appliedCoupon.code : null,
+                payment_method: 'RAZORPAY',
+                razorpay_payment_id: response.razorpay_payment_id,
+                shipping_address: formattedShippingAddress
+              };
+
+              await api.post('/orders', orderPayload);
+              clearCart();
+              navigate('/orders');
+            } catch (orderErr) {
+              console.error('Failed to create order after Razorpay payment:', orderErr);
+              setErrorMsg(orderErr.response?.data?.error || 'Order placement failed after payment.');
+              setProcessing(false);
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              console.log('Razorpay modal dismissed by customer.');
+              setProcessing(false);
+            }
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          console.error('[RAZORPAY FAILED]:', response.error);
+          const failureReason = response.error?.description || response.error?.reason || 'Payment failed or cancelled.';
+          setErrorMsg(`Razorpay Payment Failed: ${failureReason}`);
+          setProcessing(false);
+        });
+
+        rzp.open();
+        return;
+      }
+
+      // COD and Manual ONLINE payment paths
       const orderPayload = {
         items: cartItems,
         subtotal,
@@ -219,7 +306,6 @@ export default function Checkout() {
     } catch (err) {
       console.error('Order submission failed:', err);
       setErrorMsg(err.response?.data?.error || 'Order placement failed. Please verify login status.');
-    } finally {
       setProcessing(false);
     }
   };
@@ -505,10 +591,46 @@ export default function Checkout() {
               <span className="text-[10px] font-bold text-[#64748B] uppercase">Step 2 of 2</span>
             </div>
 
-            {/* 2-Option Payment Cards Selector */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* 3-Option Payment Cards Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               
-              {/* Option A: Cash on Delivery (COD) */}
+              {/* Option A: Razorpay Gateway */}
+              <button
+                type="button"
+                onClick={() => {
+                  setPaymentMethod('RAZORPAY');
+                  setErrorMsg('');
+                }}
+                className={`p-4 rounded-2xl border transition-all text-left cursor-pointer flex flex-col justify-between space-y-3 ${
+                  paymentMethod === 'RAZORPAY'
+                    ? 'bg-indigo-50/90 border-[#4F46E5] ring-2 ring-indigo-200 shadow-md'
+                    : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="p-2.5 rounded-xl bg-indigo-100 text-[#4F46E5] border border-indigo-200">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  {paymentMethod === 'RAZORPAY' && (
+                    <span className="w-5 h-5 rounded-full bg-[#4F46E5] text-white flex items-center justify-center">
+                      <Check className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-bold text-[#0F172A] font-heading">Razorpay Gateway</h4>
+                  <p className="text-[10px] text-[#64748B] mt-1 leading-relaxed font-medium">
+                    UPI (GPay/PhonePe), Cards, NetBanking.
+                  </p>
+                </div>
+
+                <span className="px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase tracking-wider bg-indigo-100 text-[#4F46E5] border border-indigo-200 self-start">
+                  ⚡ Auto Approved
+                </span>
+              </button>
+
+              {/* Option B: Cash on Delivery (COD) */}
               <button
                 type="button"
                 onClick={() => {
@@ -533,18 +655,18 @@ export default function Checkout() {
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] font-heading">Cash on Delivery (COD)</h4>
+                  <h4 className="text-sm font-bold text-[#0F172A] font-heading">Cash on Delivery</h4>
                   <p className="text-[10px] text-[#64748B] mt-1 leading-relaxed font-medium">
-                    Pay in cash upon delivery. No payment proof or screenshot required.
+                    Pay in cash upon delivery.
                   </p>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-100 text-[#059669] border border-emerald-200 self-start">
+                <span className="px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase tracking-wider bg-emerald-100 text-[#059669] border border-emerald-200 self-start">
                   Instant Confirmation
                 </span>
               </button>
 
-              {/* Option B: Online Payment (UPI / QR Code) */}
+              {/* Option C: Manual Online Payment (UPI / QR Code) */}
               <button
                 type="button"
                 onClick={() => {
@@ -553,30 +675,30 @@ export default function Checkout() {
                 }}
                 className={`p-4 rounded-2xl border transition-all text-left cursor-pointer flex flex-col justify-between space-y-3 ${
                   paymentMethod === 'ONLINE'
-                    ? 'bg-indigo-50/80 border-[#4F46E5] ring-2 ring-indigo-200 shadow-md'
+                    ? 'bg-purple-50/80 border-purple-500 ring-2 ring-purple-200 shadow-md'
                     : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
                 }`}
               >
                 <div className="flex justify-between items-start">
-                  <div className="p-2.5 rounded-xl bg-indigo-100 text-[#4F46E5] border border-indigo-200">
+                  <div className="p-2.5 rounded-xl bg-purple-100 text-purple-600 border border-purple-200">
                     <QrCode className="w-5 h-5" />
                   </div>
                   {paymentMethod === 'ONLINE' && (
-                    <span className="w-5 h-5 rounded-full bg-[#4F46E5] text-white flex items-center justify-center">
+                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center">
                       <Check className="w-3.5 h-3.5" />
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-bold text-[#0F172A] font-heading">Online Payment (UPI / QR)</h4>
+                  <h4 className="text-sm font-bold text-[#0F172A] font-heading">Manual UPI QR</h4>
                   <p className="text-[10px] text-[#64748B] mt-1 leading-relaxed font-medium">
-                    Scan store QR code using GPay/PhonePe &amp; upload payment screenshot.
+                    Scan store QR code &amp; upload screenshot.
                   </p>
                 </div>
 
-                <span className="px-2.5 py-1 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-indigo-100 text-[#4F46E5] border border-indigo-200 self-start">
-                  Requires Screenshot Upload
+                <span className="px-2 py-0.5 rounded-full text-[8.5px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-600 border border-purple-200 self-start">
+                  Requires Screenshot
                 </span>
               </button>
 
@@ -584,7 +706,52 @@ export default function Checkout() {
 
             {/* Detailed View per Payment Method */}
             <AnimatePresence mode="wait">
-              {paymentMethod === 'COD' ? (
+              {paymentMethod === 'RAZORPAY' ? (
+                <motion.div
+                  key="razorpay-view"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-4 text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 text-[#4F46E5] text-xs font-extrabold">
+                      <Zap className="w-4 h-4" />
+                      <span>RAZORPAY INSTANT CHECKOUT</span>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-emerald-100 text-[#059669] border border-emerald-200">
+                      Auto Approved
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-[#475569] leading-relaxed font-medium">
+                    Pay securely using <strong className="text-[#0F172A]">Google Pay, PhonePe, Paytm, BHIM, Credit/Debit Cards, or NetBanking</strong>. Your order will be confirmed instantly.
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div className="p-2.5 bg-white rounded-xl border border-indigo-100 text-center shadow-xs">
+                      <Smartphone className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
+                      <span className="text-[10px] font-bold text-[#0F172A] block">UPI Apps</span>
+                      <span className="text-[9px] text-[#64748B]">GPay, PhonePe</span>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-xl border border-indigo-100 text-center shadow-xs">
+                      <CreditCard className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
+                      <span className="text-[10px] font-bold text-[#0F172A] block">Cards</span>
+                      <span className="text-[9px] text-[#64748B]">Visa, RuPay, MC</span>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-xl border border-indigo-100 text-center shadow-xs">
+                      <Globe className="w-4 h-4 text-indigo-600 mx-auto mb-1" />
+                      <span className="text-[10px] font-bold text-[#0F172A] block">NetBanking</span>
+                      <span className="text-[9px] text-[#64748B]">50+ Indian Banks</span>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-xl border border-indigo-100 text-center shadow-xs">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 mx-auto mb-1" />
+                      <span className="text-[10px] font-bold text-[#0F172A] block">Secure</span>
+                      <span className="text-[9px] text-[#64748B]">256-Bit SSL</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ) : paymentMethod === 'COD' ? (
                 <motion.div
                   key="cod-view"
                   initial={{ opacity: 0, y: 10 }}
@@ -776,6 +943,11 @@ export default function Checkout() {
             >
               {processing ? (
                 <span>PROCESSING ORDER...</span>
+              ) : paymentMethod === 'RAZORPAY' ? (
+                <>
+                  <Zap className="w-4 h-4 fill-current text-amber-300" />
+                  <span>PAY ₹{totalAmount.toLocaleString('en-IN')} VIA RAZORPAY</span>
+                </>
               ) : paymentMethod === 'COD' ? (
                 <>
                   <CheckCircle2 className="w-4 h-4" />

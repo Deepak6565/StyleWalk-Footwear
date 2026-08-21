@@ -25,8 +25,8 @@ router.post('/', verifyToken, (req, res) => {
   }
 
   const method = (payment_method || 'COD').toUpperCase();
-  if (!['COD', 'ONLINE'].includes(method)) {
-    return res.status(400).json({ error: "Payment method must be 'COD' or 'ONLINE'." });
+  if (!['COD', 'ONLINE', 'RAZORPAY'].includes(method)) {
+    return res.status(400).json({ error: "Payment method must be 'COD', 'ONLINE', or 'RAZORPAY'." });
   }
 
   let paymentStatus = 'Confirmed';
@@ -35,11 +35,17 @@ router.post('/', verifyToken, (req, res) => {
 
   if (method === 'ONLINE') {
     if (!payment_screenshot || !payment_screenshot.trim()) {
-      return res.status(400).json({ error: 'Payment screenshot upload proof is required for Online Payment.' });
+      return res.status(400).json({ error: 'Payment screenshot upload proof is required for Manual Online Payment.' });
     }
     paymentStatus = 'Payment Verification Pending';
     orderStatus = 'Payment Verification Pending';
     screenshotUrl = payment_screenshot.trim();
+  } else if (method === 'RAZORPAY') {
+    paymentStatus = 'Payment Approved';
+    orderStatus = 'Confirmed';
+    if (req.body.razorpay_payment_id) {
+      screenshotUrl = `RAZORPAY_ID:${req.body.razorpay_payment_id}`;
+    }
   }
 
   const userId = req.user.id;
@@ -89,7 +95,7 @@ router.post('/', verifyToken, (req, res) => {
       res.status(201).json({
         message: method === 'COD' 
           ? 'COD Order confirmed successfully!' 
-          : 'Online Order submitted! Payment Verification Pending.',
+          : (method === 'RAZORPAY' ? 'Razorpay payment verified & order confirmed!' : 'Online Order submitted! Payment Verification Pending.'),
         orderId: this.lastID,
         payment_method: method,
         payment_status: paymentStatus,
